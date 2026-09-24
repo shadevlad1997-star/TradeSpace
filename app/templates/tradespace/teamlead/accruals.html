@@ -1,0 +1,19 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import attention_panel, empty_state %}
+{% from "tradespace/teamlead/_components.html" import header, accrual_records, money %}
+{% block content %}
+{{ header('','Начисления','') }}
+<form class="ts-filter-bar ts-tl-filters" method="get"><label><span>Поиск</span><input name="q" value="{{ lead.filters.q }}" placeholder="Участник или ID операции"></label>
+<label><span>Источник</span><select name="source"><option value="">Все</option>{% for value,label in [('trader_referral','За трейдера'),('merchant_referral','За мерчанта')] %}<option value="{{ value }}"{% if lead.filters.source==value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label><span>Статус</span><select name="status"><option value="">Все</option><option value="credited"{% if lead.filters.status=='credited' %} selected{% endif %}>Начислено</option><option value="reversed"{% if lead.filters.status=='reversed' %} selected{% endif %}>Сторнировано</option></select></label>
+<label><span>С даты</span><input type="date" name="date_from" value="{{ lead.filters.date_from }}"></label><label><span>По дату</span><input type="date" name="date_to" value="{{ lead.filters.date_to }}"></label><button class="ts-button ts-button--primary">Применить</button><a href="{{ cabinet_base }}/tradespace/accruals">Сбросить</a></form>
+{% if lead.filter_error %}{{ attention_panel('Период не применён',lead.filter_error) }}{% endif %}
+<section class="ts-section-block"><div class="ts-panel-heading"><h2>Записи начислений</h2><span>{{ lead.filtered_count }} найдено</span></div>{{ accrual_records(lead.accruals) }}
+<nav class="ts-pager" aria-label="Страницы начислений">{% if lead.page>1 %}<a href="{{ request.url.include_query_params(page=lead.page-1) }}">← Назад</a>{% endif %}<span>Страница {{ lead.page }} из {{ lead.pages }}</span>{% if lead.page<lead.pages %}<a href="{{ request.url.include_query_params(page=lead.page+1) }}">Далее →</a>{% endif %}</nav>
+<p class="ts-note">Фильтры применяются к последним 500 начислениям каждого источника. Время записей и даты фильтра — UTC. Сторно не переписывает исходное распределение.</p></section>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Движения средств</span><h2>Движения финансового счёта</h2></div><span>Последние {{ lead.ledger|length }}</span></div>
+{% if lead.ledger %}<div class="ts-tl-ledger">{% for row in lead.ledger %}<details><summary><div><strong>{{ row.label }}</strong><small>{{ row.source }} · {{ row.created_at|dt_compact }}</small></div>{{ money(row.amount) }}<span aria-hidden="true">↓</span></summary>
+<div class="ts-tl-record__detail"><dl class="ts-definition-list"><div><dt>Доступно после</dt><dd>{{ money(row.available) }}</dd></div><div><dt>Резерв после</dt><dd>{{ money(row.frozen) }}</dd></div><div><dt>Долг после</dt><dd>{{ money(row.debt) }}</dd></div><div><dt>Основание</dt><dd>{{ row.reason }}</dd></div><div><dt>ID записи</dt><dd><code>{{ row.id }}</code></dd></div></dl></div></details>{% endfor %}</div>
+<p class="ts-note">Сумма записи не имеет знака. Направление задаёт тип движения; остатки показаны после него. Начисление и погашение долга не следует складывать как отдельные доходы.</p>
+{% else %}{{ empty_state('Финансовых движений нет','Записи появятся после начисления, расчёта или корректировки.','history') }}{% endif %}</section>
+{% endblock %}

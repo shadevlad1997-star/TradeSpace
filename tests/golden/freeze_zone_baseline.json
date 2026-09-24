@@ -1,0 +1,747 @@
+{
+  "acceptance_history": [
+    {
+      "date": "2026-09-24",
+      "files": [
+        "alembic/versions/0027_aggregator_credentials.py",
+        "app/api/v1/aggregator.py",
+        "app/api/v1/integration.py",
+        "app/models/__init__.py",
+        "app/models/integration.py",
+        "app/services/aggregator_credentials.py",
+        "app/services/aggregators.py",
+        "app/web/routes.py"
+      ],
+      "reason": "Explicit owner authorization: independent environment-bound aggregator credentials and Production admission",
+      "validation": "345 PostgreSQL tests passed; financial/callback functions preserved; no Golden snapshots changed"
+    },
+    {
+      "date": "2026-09-24",
+      "files": [
+        "app/services/appeals.py",
+        "app/web/routes.py"
+      ],
+      "reason": "Explicit owner authorization: paid disputes are non-financial; unpaid disputes settle once using saved fees; accurate approval message",
+      "validation": "375 PostgreSQL tests passed, including 27 new dispute cases; all 17 Golden JSONs unchanged; only these two protected paths accepted"
+    }
+  ],
+  "areas": [
+    {
+      "id": "FZ-01",
+      "patterns": [
+        "app/models/*.py",
+        "app/core/enums.py",
+        "alembic/versions/*.py"
+      ],
+      "reason": "Production schema, persisted entities, constraints and migration history."
+    },
+    {
+      "id": "FZ-02",
+      "patterns": [
+        "app/api/deps.py",
+        "app/core/merchant_hmac.py",
+        "app/services/merchant_api_keys.py",
+        "app/services/integration_modes.py",
+        "app/api/v1/integration.py",
+        "app/db/session.py",
+        "app/core/config.py"
+      ],
+      "reason": "Merchant HMAC, replay protection and API-key mode are external security contracts."
+    },
+    {
+      "id": "FZ-03",
+      "patterns": [
+        "app/core/security.py",
+        "app/core/logging.py",
+        "app/core/session.py",
+        "app/core/middleware.py",
+        "app/core/auth_hardening.py",
+        "app/core/rate_limit.py",
+        "app/core/client_ip.py",
+        "app/core/access.py",
+        "app/web/__init__.py",
+        "app/presentation/tradespace/routes.py",
+        "app/presentation/tradespace/wallet.py"
+      ],
+      "reason": "Shared authentication, realm, CSRF/session, product-only entry routes and wallet-reader authorization."
+    },
+    {
+      "id": "FZ-04",
+      "patterns": [
+        "app/api/v1/merchant.py",
+        "app/services/aggregators.py"
+      ],
+      "reason": "Idempotent Deposit/Aggregator creation and initial collateral reservation."
+    },
+    {
+      "id": "FZ-05",
+      "patterns": [
+        "app/services/requisites.py"
+      ],
+      "reason": "Deterministic routing, Requisite eligibility and collateral reservation."
+    },
+    {
+      "id": "FZ-06",
+      "patterns": [
+        "app/services/fee_tiers.py",
+        "app/services/fees.py",
+        "app/services/platform_income.py"
+      ],
+      "reason": "Fee resolution, immutable fee snapshots and platform-margin mathematics."
+    },
+    {
+      "id": "FZ-07",
+      "patterns": [
+        "app/services/ledger.py",
+        "app/services/finance_reconciliation.py"
+      ],
+      "reason": "Merchant/Trader balance mutation and reconciliation semantics."
+    },
+    {
+      "id": "FZ-08",
+      "patterns": [
+        "app/services/deposit_confirmation.py",
+        "app/services/deposit_lifecycle.py",
+        "app/services/deposit_ttl.py"
+      ],
+      "reason": "Authoritative Deposit confirmation, failure and expiration transitions."
+    },
+    {
+      "id": "FZ-09",
+      "patterns": [
+        "app/services/payouts.py"
+      ],
+      "reason": "Existing Payout reservation, completion and release accounting."
+    },
+    {
+      "id": "FZ-10",
+      "patterns": [
+        "app/services/rolling.py",
+        "app/services/rapira.py"
+      ],
+      "reason": "Rolling funding, FIFO recovery and strict financial quote behavior."
+    },
+    {
+      "id": "FZ-11",
+      "patterns": [
+        "app/services/teamlead.py"
+      ],
+      "reason": "TeamLead attribution, accrual, debt, reversal and settlement accounting."
+    },
+    {
+      "id": "FZ-12",
+      "patterns": [
+        "app/services/settlements.py"
+      ],
+      "reason": "Merchant settlement freeze, completion and rejection accounting."
+    },
+    {
+      "id": "FZ-13",
+      "patterns": [
+        "app/services/appeals.py",
+        "app/services/sms.py"
+      ],
+      "reason": "Appeal and SMS paths that can change Deposit and financial outcomes."
+    },
+    {
+      "id": "FZ-14",
+      "patterns": [
+        "app/services/webhook_payloads.py",
+        "app/services/webhooks.py",
+        "app/services/webhook_signing_keys.py",
+        "app/services/webhook_enqueue.py"
+      ],
+      "reason": "Webhook payload, signature, durable delivery and enqueue semantics."
+    },
+    {
+      "id": "FZ-15",
+      "patterns": [
+        "app/api/v1/aggregator.py",
+        "app/services/aggregators.py",
+        "app/services/aggregator_credentials.py",
+        "app/services/aggregator_enqueue.py"
+      ],
+      "reason": "Aggregator processing, authentication and callback delivery semantics."
+    },
+    {
+      "id": "FZ-16",
+      "patterns": [
+        "app/services/risk.py",
+        "app/services/antiscam.py",
+        "app/services/compliance.py",
+        "app/core/compliance.py",
+        "app/core/validators.py",
+        "app/core/payment_methods.py",
+        "app/core/requisite_providers.py",
+        "app/core/russian_banks.py",
+        "app/core/mobile_operators.py"
+      ],
+      "reason": "Risk, antiscam, compliance and provider eligibility used by routing."
+    },
+    {
+      "id": "FZ-17",
+      "patterns": [
+        "app/workers/*.py"
+      ],
+      "reason": "Celery lifecycle, expiration and delivery scheduling."
+    },
+    {
+      "id": "FZ-18",
+      "patterns": [
+        "app/web/routes.py",
+        "app/api/v1/admin.py",
+        "app/api/v1/cabinet.py",
+        "app/api/v1/router.py",
+        "app/schemas/common.py",
+        "app/main.py"
+      ],
+      "reason": "Existing browser/admin mutation handlers, schemas and API contract ordering."
+    }
+  ],
+  "baseline_branch": "codex/tradespace-wave1",
+  "baseline_commit": "8b88337e55eb5d8b6d3a3d2ac78e7ed8943d0279",
+  "files": {
+    "alembic/versions/0001_initial.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "43c110a44df6cd325441a077cfa3e1952e8f0aa5408c54fe2ba76b4a754bac97"
+    },
+    "alembic/versions/0002_security_compliance.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "94939879c7e50b6fea5cfa2353c700dca5d5bd7d0c73aec1384a450634084ab1"
+    },
+    "alembic/versions/0003_trader_controls.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "02715cf35893b04198516cecb651841302abcf6b06dbbcb58d906cbe73a216f3"
+    },
+    "alembic/versions/0004_merchant_settlements.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "8a0a431c6ba3d3c82a65b5017e5bf6e8f839e6866c15d58b5f31c6037e52ae7c"
+    },
+    "alembic/versions/0005_appeal_metadata.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "adee48cc35e28123794ebe60c9ec8a03ddd5d80c58afeb001b4c07ed395ba526"
+    },
+    "alembic/versions/0006_money_safety_hardening.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "bde99f677f5c5603dd631868ffcc75a93ade77de7061ee1c120e7b4fc7506511"
+    },
+    "alembic/versions/0007_aggregator_module.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "562cd93962748cc87e886a9904398456b3cbf4794e98a6b9765b5e14f5c8c17e"
+    },
+    "alembic/versions/0008_antiscam_risk_control.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "280123997e600586ba6543ea045b3af75d74d9dbdec41ab045967e28d3d3b58e"
+    },
+    "alembic/versions/0009_requisite_provider_codes.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "e2013cc430ed64b3b8f1d57ccc4b8ebda0d7103997879338ce2e80fcfed067f5"
+    },
+    "alembic/versions/0010_fee_tiers_and_tenant_archival.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "7fd599130ccfae8c529b89754102b4e9a8cdf890cd540fc8609b8269648ce0e5"
+    },
+    "alembic/versions/0011_individual_fee_rules.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "5747c421eebd82ac0df4b7be78a9cc3302e4d9e9a87b8e00e5c77113ecef3c5b"
+    },
+    "alembic/versions/0012_merchant_api_key_modes.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "b1a1bdb26d4dfc7620963f9cdd52f9ee1c7895bf043b73067eaa2c251429af2c"
+    },
+    "alembic/versions/0013_encrypt_sensitive_data_at_rest.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "31d6d91b349ee33dcc65f1f950dddbaf573cb1895b22774ce05c9dfff490252d"
+    },
+    "alembic/versions/0014_deposit_expiry_finance_profile.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "117847c1c38b035562ddf5090e730b24d48c3aa1e960fbc0f5d403f8fe781da5"
+    },
+    "alembic/versions/0015_merchant_rolling.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "1d3bffaec4e3c2905ea8875c51f99aa1d8014c20f24a53dd1635cca7cade1e39"
+    },
+    "alembic/versions/0016_rolling_rapira_freshness.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "4ad62b22a6f27b3ff7352d5c73ccbb191ab633db9d5e98dc629120731845996b"
+    },
+    "alembic/versions/0017_teamlead.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "48c966ec5c1521943a8072af3912ff581ceff90190d144add270bc42a46009cb"
+    },
+    "alembic/versions/0018_platform_crypto_wallet.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "518a7e004b0bb92fb57f2b9326113b1918129fca5d36e3256513f28db69d10dc"
+    },
+    "alembic/versions/0019_ai_office_config.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "a6df75a55eb397c42676ff0220c0827a44c52fa3ef2c470262343ec78b589697"
+    },
+    "alembic/versions/0020_rolling_confirmation_flow.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "e6e9f07eb7101f2ab810156ecee7862de9da04faf5a38868c9fdef50c1bde11c"
+    },
+    "alembic/versions/0021_settlement_hardening.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "167eda4c252f081ee28423b01eec47b57f3574135fce78e9703179462bb72891"
+    },
+    "alembic/versions/0022_hmac_v2_idempotency.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "1dc386aa719222cf5cfb810c703b643bc684405ee24464a40067d72e8e4ea423"
+    },
+    "alembic/versions/0023_webhook_delivery_hardening.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "51ffafc7a1fac661b9ba681bd4767b209e1b55b2d64e64b9509946d1bdec930a"
+    },
+    "alembic/versions/0024_required_schema_indexes.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "a4f7c08303d6df4864e4b39e56bb11e26c43b55d7eb7e8b2df3fb7cb288355a9"
+    },
+    "alembic/versions/0025_teamlead_merchant_referrals.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "9cfed1123e2eb1282e6c8a724c418b665f0901ebd476eeaeaf949070006b7604"
+    },
+    "alembic/versions/0026_integration_modes.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "1127811d6e976c3616fcc611e3fb20d1414ef3e701fd50d7de7d68997373b0a2"
+    },
+    "alembic/versions/0027_aggregator_credentials.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "8a4d7a09494222378abf7ae0a4f42c60c88e0826fcea2d2880fc3967b3efc0eb"
+    },
+    "app/api/deps.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "6e633b2737db6fd96ff20db765a5b9a3e3d876e96ca3befe97bcc70312499ad9"
+    },
+    "app/api/v1/admin.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "835a0bbaa29fd11361782f643016fb2d85afdac70d97e987cda261e16e76baaf"
+    },
+    "app/api/v1/aggregator.py": {
+      "areas": [
+        "FZ-15"
+      ],
+      "sha256": "11c1c2134c7f4d1782ce1f27ef43651257a78b9633084d00aa82f63a1765920b"
+    },
+    "app/api/v1/cabinet.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "c4f01ceeb1771c6759e193877e97af0bbf64e13f58de866e35b12d1e6c630ef5"
+    },
+    "app/api/v1/integration.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "b77afaf33db68a9c6dc12f84e7b5056e3be3400d465fca180c96c8d03b8d286a"
+    },
+    "app/api/v1/merchant.py": {
+      "areas": [
+        "FZ-04"
+      ],
+      "sha256": "25b7908f62f8916472fc357ae30f89179d384c018624d8844332483261aecb10"
+    },
+    "app/api/v1/router.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "939b5721329bc9a05a1dd3d888d9a931ecf69ed55115e86ec0b950bd88838c10"
+    },
+    "app/core/access.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "bdc00f8468f4241da7ec7b128f767a4945d782798f90ab690b9f4bce3420e29b"
+    },
+    "app/core/auth_hardening.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "fb7b2564507b5c3d388cd6d42b9e456ed44feb9cb3cced7b7d4398ea318e82ff"
+    },
+    "app/core/client_ip.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "a964eeaa96e2679dd3d677e7428ecd5ebe3fd25289cb1bd8aa947a59d400029c"
+    },
+    "app/core/compliance.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "d0c1499ecddfc54405648c3d6537c1baa13464f2b76d1ebb4e2df4ad15048eef"
+    },
+    "app/core/config.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "e18dda5ef2042b15895a1b3c0a88a07f65fcc98a5cbfc956172235398ba359fd"
+    },
+    "app/core/enums.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "efd8e7e17040d90e70a00e1720826b8704675c62196f848306bb9db77631f808"
+    },
+    "app/core/logging.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "f9654fa1d7bd793c47ee0d6c9290d2d37304cb20e605949228b8675b8fc5489c"
+    },
+    "app/core/merchant_hmac.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "b3be264a6abe88fd96bd356e9632f7237eb6f0b56e93529da385270edebf3926"
+    },
+    "app/core/middleware.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "8eaefc873d924a6996399ebcae737fd4f03ec1da026df122248618612ea20c04"
+    },
+    "app/core/mobile_operators.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "6734fbebdc26b3365ea03776e0ff40e775ee35a7e5506171f4fec62e5cd6c1b0"
+    },
+    "app/core/payment_methods.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "4a1c0e8f1e55447ed435b1d5d844ba88456ef974929e7c447db954c0c0fdc36a"
+    },
+    "app/core/rate_limit.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "8a016f743b6545606fe32a192992fa59cf443fc5fe1c4c2bdbdb65f673016c3e"
+    },
+    "app/core/requisite_providers.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "91de992ab163f34c92a2d5ed5e8614b676a0b5c5fd629576d83414e09901f158"
+    },
+    "app/core/russian_banks.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "4a4af7b9417797cb8c3317b783f5ff9e62dd9bce15a05d44cc73bdc3a8ba8fbc"
+    },
+    "app/core/security.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "2971688a0dd73b862266f53f40db2fe95078af5050421b56ad07a78eab8a08ec"
+    },
+    "app/core/session.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "668913592c463a715a57cda106f7a79c9aa143453b9db026b1dee1422491f5aa"
+    },
+    "app/core/validators.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "b0c011acf7777beeb866e50d15b4ce731cf5e87f9a9ad0589fb63953ce69de7c"
+    },
+    "app/db/session.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "82cc637fb49eeb86ff6f46c1d0a8fce5e5d3f2cea495a490a5a571035a80865f"
+    },
+    "app/main.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "331ca6328a512c83e18e9297f4087e16fe8767c06f87044318631696bd41d30e"
+    },
+    "app/models/__init__.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "e61fc337a3b31d38747fef776c703e5313056eddef6f4c1f23faf251cb2762ab"
+    },
+    "app/models/entities.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "fc7bd10b8faa582a7d79e3c934ab237ee355c6ea9b4935cc2674b0ca0e1f29a4"
+    },
+    "app/models/integration.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "81fe9d74ca57859d10108d8b248eaeeec50c477d28304be1e80c7cc2e12d7244"
+    },
+    "app/presentation/tradespace/routes.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "1f15c6344e472eabf8b2d5c5c2ef95b72e5264f3ab2853d22922e22509392e44"
+    },
+    "app/presentation/tradespace/wallet.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "1108da8b5787b668ae66b0e6eb2cb3c484369cdd25abd8414e9e9e284f05a88b"
+    },
+    "app/schemas/common.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "1e187162bb1a47af6472f498c16a5a6a7dc92264373f6424d2a2bf5e73c76deb"
+    },
+    "app/services/aggregator_credentials.py": {
+      "areas": [
+        "FZ-15"
+      ],
+      "sha256": "43b53432b3ae4869186cda9b47162bb128e20f61ad14a192b52a3fb9290ab30a"
+    },
+    "app/services/aggregator_enqueue.py": {
+      "areas": [
+        "FZ-15"
+      ],
+      "sha256": "86721dcfc227949a333d9db0047f23efd34622396d2ed0eadbbb0160ecd1e6fc"
+    },
+    "app/services/aggregators.py": {
+      "areas": [
+        "FZ-04",
+        "FZ-15"
+      ],
+      "sha256": "347de4219d2866cead974e7481da6477cf9eb6cdb2482691850b95928ba9657b"
+    },
+    "app/services/antiscam.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "c3ba4366e7127440c8b7c17f8a7388bcd06fdfda1a67d3bef4d9522f6107d880"
+    },
+    "app/services/appeals.py": {
+      "areas": [
+        "FZ-13"
+      ],
+      "sha256": "6e0a68778b4269a091da7ad23280c3df8cd0267636238218dae20bdb8479ebf3"
+    },
+    "app/services/compliance.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "08ae4d708637f46ee26336a5ed124dd886e20e8c6cfee792ad7e399278d2c656"
+    },
+    "app/services/deposit_confirmation.py": {
+      "areas": [
+        "FZ-08"
+      ],
+      "sha256": "95a2ebc9f2a963685fe46bb6c694be2c2825e9052b8f7689d3625a719186af76"
+    },
+    "app/services/deposit_lifecycle.py": {
+      "areas": [
+        "FZ-08"
+      ],
+      "sha256": "b26e6bc0476516c8a3f00fe99866388cebccdb2846ba08fa89544b24c360f382"
+    },
+    "app/services/deposit_ttl.py": {
+      "areas": [
+        "FZ-08"
+      ],
+      "sha256": "1bb9c438c4a1c27273b81536815d6ddac817665f860011f1978f946ef3d0615f"
+    },
+    "app/services/fee_tiers.py": {
+      "areas": [
+        "FZ-06"
+      ],
+      "sha256": "ea736ddfe3c55111f5538a821d9a23bea51b8ddac910922477d37dab965cc31f"
+    },
+    "app/services/fees.py": {
+      "areas": [
+        "FZ-06"
+      ],
+      "sha256": "2c8b848d69534d5dc8e04095bce0136be8f34b486c69a1e0bac3d3ca128ecee4"
+    },
+    "app/services/finance_reconciliation.py": {
+      "areas": [
+        "FZ-07"
+      ],
+      "sha256": "3ebfc62fdab71e13279e4fe356ce21748d0c2363a0835317f380418be942171e"
+    },
+    "app/services/integration_modes.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "6a4beecac4270396caae2ade128321d6ca6b4dbb0ae2e3e6f43ecc2b2ecad7ab"
+    },
+    "app/services/ledger.py": {
+      "areas": [
+        "FZ-07"
+      ],
+      "sha256": "9ae41394eb5ca6fd0d38ad21013c7fb47425bfa9990de0a9bc03ccc1c7e376d7"
+    },
+    "app/services/merchant_api_keys.py": {
+      "areas": [
+        "FZ-02"
+      ],
+      "sha256": "a0c99e13529b4ef1026a61692538c731e29007d867d5d3296c21c36b88cc932c"
+    },
+    "app/services/payouts.py": {
+      "areas": [
+        "FZ-09"
+      ],
+      "sha256": "6a033dd5a7e47d1a955c7dd137ac2736f9703f67c25d2e98632c6d707553f6bd"
+    },
+    "app/services/platform_income.py": {
+      "areas": [
+        "FZ-06"
+      ],
+      "sha256": "daa40ec228b8078d4c7b968dbc1de14eeecb6ada85955aecc9f6877de626a2a8"
+    },
+    "app/services/rapira.py": {
+      "areas": [
+        "FZ-10"
+      ],
+      "sha256": "4f4d9193499b249e5d735da6b4b17a847a0bf68ec086748afa7bb225708a52f8"
+    },
+    "app/services/requisites.py": {
+      "areas": [
+        "FZ-05"
+      ],
+      "sha256": "0ed36935a8808eb4ddb6cf12bc790ed27bc2c6df9e20edc7e00e25e1228f6c71"
+    },
+    "app/services/risk.py": {
+      "areas": [
+        "FZ-16"
+      ],
+      "sha256": "464b450d0799cc24bce760db5539abd4a5952d68238015bc4ddf6a5369c1c588"
+    },
+    "app/services/rolling.py": {
+      "areas": [
+        "FZ-10"
+      ],
+      "sha256": "bf2d326cf777f034149b4e6f77c3c38cd80e77cb6140a2cdbdab657c7c1dcf6a"
+    },
+    "app/services/settlements.py": {
+      "areas": [
+        "FZ-12"
+      ],
+      "sha256": "70a7a3e18b2849a83ecea2f1e42fd343e6a7bfb79e8060c5f6e709f6a34e38f9"
+    },
+    "app/services/sms.py": {
+      "areas": [
+        "FZ-13"
+      ],
+      "sha256": "ad70a80477c29d3daa155332268a8ef99313384f499edd4a1becf43ed724a751"
+    },
+    "app/services/teamlead.py": {
+      "areas": [
+        "FZ-11"
+      ],
+      "sha256": "779ee080b762c584bafae9c21c1b1d46a432b24403f58a0af3474c36cb1cc7bb"
+    },
+    "app/services/webhook_enqueue.py": {
+      "areas": [
+        "FZ-14"
+      ],
+      "sha256": "37535a02ad88e6417a527de8075f407981db565ff728be6745968b20ab0caaa6"
+    },
+    "app/services/webhook_payloads.py": {
+      "areas": [
+        "FZ-14"
+      ],
+      "sha256": "d6e02e802d92c25cd7e7670a5102c67a8da5a653751508c4b1a2e502e895ec0f"
+    },
+    "app/services/webhook_signing_keys.py": {
+      "areas": [
+        "FZ-14"
+      ],
+      "sha256": "8506444c1e54ef7fb9cb87b97fb4333e95dec14d72037355ad16dfdb6e3aaad3"
+    },
+    "app/services/webhooks.py": {
+      "areas": [
+        "FZ-14"
+      ],
+      "sha256": "21bd9ada89fb3a872508c572d3c7626b83a4645a49738792a16ef7a2c56b0782"
+    },
+    "app/web/__init__.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "89e1fb54543ce26d2baf5c131abf58e8a431a8a2f7ad7fd59de7321a19716a7e"
+    },
+    "app/web/routes.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "0fa89e57c6518f514919395eadf36bd9dcf2f2bcb286a650ee9908f90a9e3992"
+    },
+    "app/workers/celery_app.py": {
+      "areas": [
+        "FZ-17"
+      ],
+      "sha256": "34d81898f534b1bb2fe7b91273e57b11ce299b51fcaff7c21887562588621e63"
+    }
+  },
+  "schema_version": 1
+}

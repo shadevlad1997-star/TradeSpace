@@ -1,0 +1,30 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "The recovered suite proves positive routing and enable/disable behavior, but has no isolated all-candidates-unavailable financial delta assertion.",
+  "business_result": {
+    "captured": {
+      "disabled_requisite_not_selected": true,
+      "eligible_requisite_assignment": true
+    },
+    "not_captured": {
+      "all_candidates_unavailable_error": true,
+      "zero_orphan_hold_assertion": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_bank_requisites_postgres.py::test_new_banks_work_in_trader_create_edit_and_merchant_api"
+    ],
+    "recovery_checks": {
+      "deposit_created": "PASS",
+      "trader_setup": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_bank_requisites_postgres.py": "304c5e771933f8b5285a6ee5261e8bb02518a92beb1de3eb6d747a22a1dda849"
+    }
+  },
+  "scenario_id": "GB-03",
+  "schema_version": 1,
+  "title": "No matching Requisite"
+}

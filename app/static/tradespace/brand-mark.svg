@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TradeSpace">
+  <rect width="64" height="64" rx="8" fill="#17233a"/>
+  <path d="M10 17h23v7h-8v24h-7V24h-8z" fill="#ffffff"/>
+  <path d="M38 17h17v7H42v5h9l4 4v11l-4 4H35v-7h13v-5h-9l-4-4V21z" fill="#5c83eb"/>
+</svg>

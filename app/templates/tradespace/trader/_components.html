@@ -1,0 +1,55 @@
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% macro page_header(eyebrow, title, description, badge_label='', badge_tone='neutral') -%}
+<header class="ts-workspace-header" data-component="WorkspaceHeader">
+  <div>{% if eyebrow %}<p class="ts-eyebrow">{{ eyebrow }}</p>{% endif %}<h1>{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</div>
+  {% if badge_label %}<div class="ts-workspace-header__state">{{ status_badge(badge_label, badge_tone, 'shield') }}</div>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro countdown(seconds, deadline) -%}
+<span class="ts-countdown{% if seconds <= 300 and seconds > 0 %} is-urgent{% endif %}" data-countdown="{{ seconds }}" data-deadline="{{ deadline.isoformat() }}">{{ seconds }} сек.</span>
+{%- endmacro %}
+
+{% macro operation_card(row, selected_id='') -%}
+<a class="ts-operation-card{% if row.id == selected_id %} is-selected{% endif %}{% if row.is_urgent %} is-urgent{% endif %}" href="{{ row.detail_url }}" data-operation-id="{{ row.id }}">
+  <span class="ts-operation-card__top">{{ money_value(row.amount, row.currency) }}{{ status_badge(row.status_label, row.status_tone) }}</span>
+  <span class="ts-operation-card__meta"><strong>{{ row.method_label }}</strong><span>{{ row.provider_name or 'Провайдер не указан' }}</span></span>
+  <span class="ts-operation-card__bottom"><code title="{{ row.external_id }}">{{ row.short_id }}</code>{% if row.remaining_seconds > 0 %}{{ countdown(row.remaining_seconds, row.expires_at) }}{% else %}<span class="ts-muted">срок истёк</span>{% endif %}</span>
+</a>
+{%- endmacro %}
+
+{% macro operation_table(rows, empty_title='Операций нет', empty_description='Подходящих операций не найдено.') -%}
+{% if rows %}
+<div class="ts-data-table-wrap ts-data-table-wrap--has-cards">
+<table class="ts-data-table">
+  <thead><tr><th>Результат</th><th>Сумма</th><th>Способ</th><th>Реквизит</th><th>Обновлено</th><th>Операция</th></tr></thead>
+  <tbody>{% for row in rows %}
+  <tr data-operation-id="{{ row.id }}">
+    <td><a class="ts-row-link" href="{{ row.detail_url }}">{{ status_badge(row.status_label, row.status_tone) }}{% if row.reason %}<small>{{ row.reason }}</small>{% endif %}</a></td>
+    <td>{{ money_value(row.amount, row.currency) }}</td>
+    <td><strong>{{ row.method_label }}</strong><small>{{ row.provider_name or '—' }}</small></td>
+    <td><span class="ts-sensitive-value">{{ row.requisite or '—' }}</span><small>{{ row.recipient_name or '—' }}</small></td>
+    <td><time datetime="{{ row.updated_at.isoformat() }}">{{ row.updated_at|dt_compact }}</time></td>
+    <td><a class="ts-id-link" href="{{ row.detail_url }}"><code title="{{ row.external_id }}">{{ row.short_id }}</code><span>Открыть</span></a></td>
+  </tr>
+  {% endfor %}</tbody>
+</table>
+</div>
+<div class="ts-mobile-cards">{% for row in rows %}
+  <a class="ts-mobile-operation" href="{{ row.detail_url }}">
+    <span>{{ status_badge(row.status_label, row.status_tone) }}<time>{{ row.updated_at|dt_compact }}</time></span>
+    <strong>{{ money_value(row.amount, row.currency) }}</strong>
+    <p>{{ row.method_label }} · {{ row.provider_name or 'Провайдер не указан' }}</p>
+    <code title="{{ row.external_id }}">{{ row.short_id }}</code>
+  </a>
+{% endfor %}</div>
+{% else %}{{ empty_state(empty_title, empty_description, 'history') }}{% endif %}
+{%- endmacro %}
+
+{% macro money_strip(trader) -%}
+<div class="ts-money-strip" aria-label="Состояние средств">
+  <div><span>Доступно</span>{{ money_value(trader.available, 'RUB') }}</div>
+  <div><span>На балансе</span>{{ money_value(trader.balance, 'RUB') }}</div>
+  <div><span>В резерве</span>{{ money_value(trader.hold, 'RUB') }}</div>
+</div>
+{%- endmacro %}

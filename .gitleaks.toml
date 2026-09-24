@@ -1,0 +1,17 @@
+title = "TradeSpace Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public test-only ENCRYPTION_KEY fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^\.github/workflows/release-gates\.yml$''',
+  '''^docker-compose\.test\.yml$''',
+]
+regexes = [
+  '''^\s*ENCRYPTION_KEY:\s*X0djOf3Ag4hSfN_PmH-aPSBaZGYoWsdFBGFzlNH3wlg=\s*$''',
+]

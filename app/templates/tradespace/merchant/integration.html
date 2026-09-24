@@ -1,0 +1,34 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, empty_state, copy_control %}
+{% from "tradespace/merchant/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'API и Webhooks', '', merchant.integration_state.label, 'attention' if merchant.sandbox_mode else 'positive') }}
+<section class="ts-section-block" aria-label="Режим интеграции">
+<h2>Режим интеграции: {{ merchant.integration_state.label }}</h2>
+<p>Sandbox и Production работают в отдельных окружениях. API-ключи, Webhook-подписи, операции и балансы между ними не переносятся.</p>
+{% if merchant.integration_state.status != 'active' %}<h3>Подключение Production</h3><p>Активацию подтверждает Superadmin после проверки настроек и разрешения владельца.</p>
+{% if merchant.integration_state.blocking_reasons %}<ul>{% for item in merchant.integration_state.blocking_reasons %}<li>{{ item.message }}</li>{% endfor %}</ul>{% else %}<p>Настройки готовы. Обратитесь к Superadmin для подтверждения активации.</p>{% endif %}{% endif %}
+<p>Ключи ниже действуют только в указанном для них режиме и только в своём окружении. Наличие Production-ключа не означает активацию.</p>
+</section>
+<div class="ts-integration-grid">
+  <section class="ts-section-block"><h2>Настройка Webhook</h2>
+    <form class="ts-stacked-form" method="post" action="{{ cabinet_base }}/merchants/{{ merchant.merchant_id }}/integration" data-submit-once>
+      {{ csrf_input(request) }}
+      <label class="ts-field"><span class="ts-field__label">Webhook URL</span><input class="ts-input" type="url" name="webhook_url" value="{{ merchant.webhook_url }}" maxlength="500" placeholder="https://merchant.example/webhook"></label>
+      <label class="ts-field"><span class="ts-field__label">Разрешённые IP</span><textarea name="ip_whitelist" rows="3" placeholder="203.0.113.10, 2001:db8::1">{{ merchant.ip_whitelist|join(', ') }}</textarea><span class="ts-field__hint">IP-адреса для доступа к API через запятую.</span></label>
+      <input type="hidden" name="merchant_commission_percent" value="">
+      <button class="ts-button ts-button--primary" type="submit">Сохранить настройки</button>
+    </form>
+  </section>
+  <section class="ts-section-block"><span class="ts-kicker">Подключение</span><h2>Merchant API</h2>
+    <dl class="ts-definition-list"><div><dt>Адрес API</dt><dd><code>/api/v1/merchant</code></dd></div><div><dt>Аутентификация</dt><dd>Подпись запроса HMAC</dd></div><div><dt>Режим</dt><dd>{{ merchant.integration_state.label }}</dd></div></dl>
+    <p class="ts-note">Секреты показываются только при выдаче ключа. Для замены ключа обратитесь к администратору.</p>
+  </section>
+</div>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Идентификаторы</span><h2>Ключи API</h2></div><span class="ts-count">{{ merchant.api_keys|length }}</span></div>
+{% if merchant.api_keys %}<div class="ts-key-grid">{% for key in merchant.api_keys %}<article class="ts-key-card"><header><span>{{ key.mode_label }}</span>{{ status_badge('Выдан' if key.active else 'Отозван','neutral') }}</header>{{ copy_control('API key', 'api-key-' ~ key.id, key.api_key, false) }}<p>{% if not key.active %}Этот ключ отозван.{% elif (key.mode_label == 'Sandbox' and merchant.integration_state.environment == 'sandbox') or (key.mode_label == 'Production' and merchant.integration_state.environment == 'production' and merchant.integration_state.status == 'active') %}Разрешён для API этого окружения.{% else %}Не даёт доступа к API этого окружения в текущем режиме.{% endif %}</p><dl><div><dt>Отпечаток ключа</dt><dd><code>{{ key.fingerprint }}</code></dd></div><div><dt>Последнее использование</dt><dd>{{ key.last_used_at|dt_compact if key.last_used_at else 'Не использовался' }}</dd></div></dl></article>{% endfor %}</div>{% else %}{{ empty_state('API keys не выпущены', 'Выпуск ключей выполняет администратор. Секрет показывается только один раз.', 'integration') }}{% endif %}</section>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Подпись Webhook</span><h2>Ключи подписи</h2></div><span class="ts-count">{{ merchant.signing_keys|length }}</span></div>
+{% if merchant.signing_keys %}<div class="ts-key-grid">{% for key in merchant.signing_keys %}<article class="ts-key-card"><header><code title="{{ key.key_id }}">{{ key.fingerprint }}</code>{{ status_badge(key.status_label,key.status_tone) }}</header><p>Секрет показывается только при выдаче ключа.</p>{% if key.retire_at %}<small>Завершение: {{ key.retire_at|dt_compact }}</small>{% endif %}</article>{% endfor %}</div>{% else %}{{ empty_state('Ключи подписи не настроены', 'Для настройки подписи обратитесь к администратору.', 'shield') }}{% endif %}</section>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Доставка</span><h2>События Webhook</h2></div><span class="ts-count">{{ merchant.webhooks|length }}</span></div>
+{% if merchant.webhooks %}<div class="ts-webhook-feed">{% for event in merchant.webhooks %}<details class="ts-webhook-event"><summary><span>{{ status_badge(event.status_label,event.status_tone) }}<strong>{{ event.event_type }}</strong></span><span><code title="{{ event.external_id }}">{{ event.external_short }}</code><time>{{ event.created_at|dt_compact }}</time></span></summary><div class="ts-webhook-event__detail"><dl><div><dt>ID события</dt><dd><code title="{{ event.id }}">{{ event.short_id }}</code></dd></div><div><dt>Статус операции</dt><dd>{{ event.operation_status or '—' }}</dd></div><div><dt>Сумма</dt><dd>{{ event.amount or '—' }} {{ event.currency }}</dd></div><div><dt>Попытки</dt><dd>{{ event.attempts }} / {{ event.max_attempts }}</dd></div><div><dt>Последний HTTP</dt><dd>{{ event.last_status_code or '—' }}</dd></div><div><dt>Следующая попытка</dt><dd>{{ event.next_attempt_at|dt_compact if event.next_attempt_at else '—' }}</dd></div></dl>{% if event.attempt_rows %}<ol class="ts-attempt-list">{% for attempt in event.attempt_rows %}<li><span>Попытка {{ attempt.attempt_no }}</span><strong>{{ attempt.status }}</strong><code>HTTP {{ attempt.status_code or '—' }}</code><time>{{ attempt.created_at|dt_compact }}</time></li>{% endfor %}</ol>{% endif %}</div></details>{% endfor %}</div>{% else %}{{ empty_state('Webhook events нет', 'События доставки появятся после изменений состояния операций.', 'integration') }}{% endif %}</section>
+{% endblock %}

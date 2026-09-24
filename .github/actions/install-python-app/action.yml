@@ -1,0 +1,26 @@
+name: Install TradeSpace Python application
+description: Install and verify the application using the canonical CI command.
+
+runs:
+  using: composite
+  steps:
+    - name: Install and verify application package
+      shell: bash
+      run: |
+        set -Eeuo pipefail
+        failure_summary() {
+          {
+            echo "### Python application installation failed"
+            echo
+            echo "The canonical \`python -m pip install .\` packaging gate failed."
+          } >> "$GITHUB_STEP_SUMMARY"
+        }
+        trap failure_summary ERR
+        python -m pip install .
+        python -m scripts.verify_package_install
+        python -m pip check
+        {
+          echo "### Python application installation"
+          echo
+          echo "Package installation, imports, and dependency consistency passed."
+        } >> "$GITHUB_STEP_SUMMARY"

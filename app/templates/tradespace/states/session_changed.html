@@ -1,0 +1,6 @@
+{% from "tradespace/components/ui.html" import icon %}
+<!doctype html><html lang="ru"><head>
+{% include "tradespace/components/head_icons.html" %}<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Сессия изменена · TradeSpace</title><link rel="stylesheet" href="/static/tradespace/css/tokens.css?v=3"><link rel="stylesheet" href="/static/tradespace/css/app.css?v=8"></head>
+<body class="ts-state-page"><main class="ts-state-card"><span class="ts-state-card__icon">{{ icon('history',28) }}</span><h1>Сессия этой вкладки изменилась</h1><p>{{ message }}</p><p>Войдите снова, чтобы продолжить работу.</p><a class="ts-button ts-button--primary" href="{{ login_path }}">Перейти ко входу</a></main></body></html>
+
+

@@ -1,0 +1,18 @@
+{
+  "version": "v2",
+  "vectors": [
+    {
+      "name": "duplicate-query-values-and-json-body",
+      "secret": "fixture-secret-only-not-a-real-credential",
+      "timestamp": "1770000000",
+      "nonce": "nonce-0123456789abcdef",
+      "method": "post",
+      "path": "/api/v1/merchant/deposits",
+      "query": "z=last&a=hello%20world&a=first",
+      "content_type": " Application/JSON ",
+      "body_utf8": "{\"external_id\":\"order-10001\",\"amount\":\"1250.00\"}",
+      "canonical": "v2\n1770000000\nnonce-0123456789abcdef\nPOST\n/api/v1/merchant/deposits\na=first&a=hello%20world&z=last\napplication/json\nd43939e1493b89efe9ac8a7d7bcfc9ed703869fedadad3451e925474aad6409b",
+      "signature": "fd0c4f9c12827ee98f371f5bb24086064043330a915671d4a226fd07d42b938a"
+    }
+  ]
+}

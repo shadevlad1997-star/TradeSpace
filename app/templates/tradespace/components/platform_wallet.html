@@ -1,0 +1,13 @@
+{% if platform_wallet_view %}
+<section class="ts-section-block" data-component="PlatformWallet">
+<h2>{{ 'Платформенный USDT TRC20' if role in ['admin','superadmin'] else 'Адрес пополнения' }}</h2>
+{% if platform_wallet_view.active %}
+<p>USDT · TRC20</p><code>{{ platform_wallet_view.active.address }}</code>
+<p>Проверяйте адрес перед каждым переводом. Переводы в другой сети могут быть потеряны.</p>
+<img width="180" height="180" src="{{ platform_wallet_view.qr_url }}" alt="QR-код активного адреса пополнения">
+<p>QR-код создаётся автоматически из активного адреса.</p>
+{% else %}<p>Платформенный кошелёк пока не указан</p>{% endif %}
+{% if role in ['admin','superadmin'] %}<h3>История версий</h3>
+<ol>{% for wallet in platform_wallet_view.history %}<li><code>{{ wallet.address }}</code> · v{{ wallet.version }} · <span data-wallet-state="{{ 'active' if wallet.is_active else 'inactive' }}">{{ 'Активен' if wallet.is_active else 'Неактивен' }}</span> · {{ wallet.change_reason }} · {{ platform_wallet_view.actors.get(wallet.created_by,'—') }}</li>{% else %}<li>История пуста</li>{% endfor %}</ol>{% endif %}
+</section>
+{% endif %}

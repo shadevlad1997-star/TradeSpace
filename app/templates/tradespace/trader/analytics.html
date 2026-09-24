@@ -1,0 +1,21 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import money_value, empty_state %}
+{% from "tradespace/trader/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'Аналитика', '', 'Без прогнозов', 'neutral') }}
+{% set a = trader.analytics %}
+<section class="ts-metric-band">
+  <article><span>Закрыто операций</span><strong>{{ a.terminal_count }}</strong><small>Все финальные результаты</small></article>
+  <article><span>Оплачено</span><strong>{{ a.paid_count }}</strong><small>Доля оплат: {{ a.paid_share }}</small></article>
+  <article><span>Оплаченный объём</span>{{ money_value(a.paid_volume, 'RUB') }}<small>Успешно завершённые операции</small></article>
+  <article><span>Комиссия трейдера</span>{{ money_value(a.paid_profit, 'RUB') }}<small>По условиям каждой операции</small></article>
+</section>
+<section class="ts-section-block">
+  <div class="ts-panel-heading"><div><span class="ts-kicker">Структура</span><h2>По способу оплаты</h2></div></div>
+  {% if a.method_rows %}
+  <div class="ts-data-table-wrap"><table class="ts-data-table"><thead><tr><th>Способ</th><th>Закрыто</th><th>Оплачено</th><th>Доля оплат</th><th>Оплаченный объём</th></tr></thead><tbody>{% for row in a.method_rows %}<tr><td><strong>{{ row.label }}</strong></td><td>{{ row.closed }}</td><td>{{ row.paid }}</td><td>{{ row.paid_share }}</td><td>{{ money_value(row.paid_volume, 'RUB') }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty_state('Недостаточно данных', 'Метрики появятся после завершения первых операций.', 'chart') }}{% endif %}
+</section>
+
+{% endblock %}
+

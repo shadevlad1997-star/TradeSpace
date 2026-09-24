@@ -1,0 +1,12 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/merchant/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'Аналитика', '', 'За доступный период', 'neutral') }}
+<section class="ts-metric-band"><article><span>Всего операций</span><strong>{{ merchant.analytics.total_count }}</strong><small>Все состояния</small></article><article><span>Оплачено</span><strong>{{ merchant.analytics.paid_count }}</strong></article><article><span>Оплаченный объём</span>{{ money_value(merchant.analytics.paid_volume,'RUB') }}</article><article><span>Зачислено</span>{{ money_value(merchant.analytics.payable_total,'RUB') }}</article></section>
+<div class="ts-analytics-grid">
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Способы оплаты</span><h2>По способу оплаты</h2></div></div>{% if merchant.analytics.method_rows %}<div class="ts-data-table-wrap"><table class="ts-data-table"><thead><tr><th>Способ</th><th>Всего</th><th>Оплачено</th><th>Оплаченный объём</th></tr></thead><tbody>{% for row in merchant.analytics.method_rows %}<tr><td><strong>{{ row.label }}</strong></td><td>{{ row.count }}</td><td>{{ row.paid }}</td><td>{{ money_value(row.paid_volume,'RUB') }}</td></tr>{% endfor %}</tbody></table></div>{% else %}{{ empty_state('Недостаточно данных','Метрики появятся после первых операций.','chart') }}{% endif %}</section>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Результаты</span><h2>По статусам</h2></div></div>{% if merchant.analytics.status_rows %}<div class="ts-status-breakdown">{% for row in merchant.analytics.status_rows %}<div>{{ status_badge(row.label,row.tone) }}<strong>{{ row.count }}</strong><span>{{ money_value(row.volume,'RUB') }}</span></div>{% endfor %}</div>{% else %}{{ empty_state('Статусов нет','Нет операций для группировки.','chart') }}{% endif %}</section>
+</div>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Условия операций</span><h2>Комиссия и зачисления</h2></div></div><dl class="ts-definition-list"><div><dt>Оплаченный объём</dt><dd>{{ money_value(merchant.analytics.paid_volume,'RUB') }}</dd></div><div><dt>Комиссия мерчанта</dt><dd>{{ money_value(merchant.analytics.fee_total,'RUB') }}</dd></div><div><dt>Зачислено мерчанту</dt><dd>{{ money_value(merchant.analytics.payable_total,'RUB') }}</dd></div></dl></section>
+{% endblock %}

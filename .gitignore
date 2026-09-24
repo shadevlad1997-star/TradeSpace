@@ -1,0 +1,62 @@
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.staging.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Logs and runtime data
+*.log
+logs/
+uploads/
+tmp/
+run/
+*.pid
+
+# Databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.dump
+*.sql
+*.zip
+backups/
+private/
+private-discovery/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+
+# Deployment artifacts
+SHA256SUMS
+GIT_METADATA.txt
+
+# TLS certificates
+nginx/certs/
+*.pem
+*.key

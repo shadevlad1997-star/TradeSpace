@@ -1,0 +1,31 @@
+services:
+  rehearsal-api:
+    image: ${REHEARSAL_APP_IMAGE:?Set REHEARSAL_APP_IMAGE to the isolated rehearsal application image}
+
+  rehearsal-rapira:
+    image: ${REHEARSAL_APP_IMAGE:?Set REHEARSAL_APP_IMAGE to the isolated rehearsal application image}
+    command: ["python", "-m", "rehearsal.rapira_mock"]
+    user: appuser
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8080/__health', timeout=2).read()
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: "no"
+    networks:
+      - backend

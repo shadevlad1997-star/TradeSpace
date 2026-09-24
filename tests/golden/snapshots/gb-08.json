@@ -1,0 +1,38 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "fifo_fixture": {
+      "consumptions_usdt": [
+        "100.000000",
+        "200.000000"
+      ],
+      "merchant_payable_rub": "35000.00",
+      "ordinary_settle_credit_rub": "5000.00",
+      "rolling_recovered_rub": "30000.00",
+      "rolling_recovered_usdt": "300.000000"
+    },
+    "funding": {
+      "confirmed_transfer_order": "FIFO"
+    },
+    "reconciliation_fixture": {
+      "ok": true,
+      "outstanding_usdt": "80.000000",
+      "principal_usdt": "200.000000",
+      "recovered_usdt": "120.000000"
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_rolling_postgres.py::test_account_aggregates_and_reconciliation_match_transfers_and_consumptions",
+      "tests/test_rolling_postgres.py::test_fifo_can_consume_multiple_transfers_and_cross_into_settle"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_rolling_postgres.py": "94212978ba1e202428bcc575f25ba849b45edfb34bc550d62a6117078034238e"
+    }
+  },
+  "scenario_id": "GB-08",
+  "schema_version": 1,
+  "title": "Rolling funding and FIFO recovery"
+}

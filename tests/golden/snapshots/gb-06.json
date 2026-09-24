@@ -1,0 +1,33 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "Cancellation and Rolling release are automated; the current suite does not run a complete browser decline plus duplicate retry with event cardinality.",
+  "business_result": {
+    "captured": {
+      "merchant_cancel_terminal": [
+        "cancelled",
+        "failed"
+      ],
+      "rolling_pending_release": true,
+      "trader_hold_after_rub": "0.00"
+    },
+    "not_captured": {
+      "browser_explicit_decline_end_to_end": true,
+      "duplicate_decline_event_cardinality": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_rolling_postgres.py::test_released_allocation_and_pending_topup_do_not_change_aggregates"
+    ],
+    "recovery_checks": {
+      "cancellation": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_rolling_postgres.py": "94212978ba1e202428bcc575f25ba849b45edfb34bc550d62a6117078034238e"
+    }
+  },
+  "scenario_id": "GB-06",
+  "schema_version": 1,
+  "title": "Deposit decline and retry"
+}

@@ -1,0 +1,34 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "F07 event/payload mismatch is corrected and verified locally; external consumers and real-browser interaction require separate acceptance.",
+  "business_result": {
+    "captured": {
+      "appeal_status": "rejected",
+      "deposit_status": "pending",
+      "event_type": "deposit.pending",
+      "merchant_available": "1000.00",
+      "no_duplicate_financial_effect": true,
+      "payload_status": "pending",
+      "trader_balance": "100000.00",
+      "trader_hold": "950.00"
+    },
+    "not_captured": [
+      "external merchant consumer compatibility",
+      "real-browser interaction"
+    ]
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_acceptance_financial_postgres.py::test_acceptance_specialized_appeal_outcome_and_duplicate_resolution[reject]",
+      "tests/test_acceptance_known_gaps.py::test_generic_appeal_http_finance_duplicate_and_concurrency[rejected]"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_acceptance_financial_postgres.py": "fc58421607d5567b99dccca3289f830e5d7479663d6257634c67ab36fbf0044b",
+      "tests/test_acceptance_known_gaps.py": "8437c83b95667d7ab42d901e1243e9967f7778bcd1cdc905e1b0294e37579d7c"
+    }
+  },
+  "scenario_id": "GB-10",
+  "schema_version": 1,
+  "title": "Appeal rejection restores consistent pending event"
+}

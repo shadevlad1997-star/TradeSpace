@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title }} · {{ brand.product_name }}</title>
+  <style nonce="{{ csp_nonce(request) }}">
+    :root{color-scheme:dark;{{ brand_css_variables|safe }}}
+    *{box-sizing:border-box}body{margin:0;background:#07111f;color:#e8eef8;font:14px/1.45 Inter,Arial,sans-serif}
+    a{color:#8ec5ff}.top{display:flex;justify-content:space-between;align-items:center;padding:18px 28px;background:#0c192b;border-bottom:1px solid #243653}
+    .wrap{max-width:1440px;margin:auto;padding:24px}.panel,.metric{background:#0d1b2d;border:1px solid #253957;border-radius:14px;padding:18px;margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}.metric b{display:block;color:#94a9c6;margin-bottom:8px}.metric strong{font-size:22px}
+    h1,h2,h3{margin-top:0}.muted{color:#93a6c1}.note,.ui-message{padding:12px 14px;border-radius:10px;background:#102a42;border:1px solid #28547b;margin-bottom:18px}.ui-message-validation{border-color:#8b672a;background:#332613}.ui-message-action,.ui-message-blocking{border-color:#8b4f2a;background:#342015}.ui-message-security{border-color:#8b3540;background:#35171c}
+    .bad{color:#ff9999}.ok{color:#82e6ad}.wait{color:#ffd985}.badge{display:inline-block;padding:3px 9px;border-radius:999px;background:#1a3555}
+    table{width:100%;border-collapse:collapse;min-width:760px}.table{overflow:auto}th,td{text-align:left;padding:10px;border-bottom:1px solid #263a57;vertical-align:top}th{color:#91a7c6}
+    input,select{width:100%;padding:10px 11px;margin:5px 0 12px;border-radius:8px;border:1px solid #38506f;background:#091525;color:#edf4ff}
+    button{border:0;border-radius:8px;padding:10px 15px;background:#2777d7;color:white;font-weight:700;cursor:pointer}.danger{background:#a63a45}.secondary{background:#324762}
+    form.inline{display:inline}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+    .logout{margin:0}.section-title{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    @media(max-width:700px){.top{padding:15px}.wrap{padding:14px}table{min-width:680px}}
+  </style>
+</head>
+<body>
+{% macro render_ui_message(scopes) -%}
+  {% if ui_message and ui_message.section in scopes %}
+  <div class="ui-message ui-message-{{ ui_message.kind }}" role="alert" data-ui-message data-ui-field="{{ ui_message.field or '' }}" data-ui-form="{{ ui_message.form_or_modal }}" data-ui-code="{{ ui_message.code }}">{{ ui_message.message }}</div>
+  {% endif %}
+{%- endmacro %}
+<header class="top">
+  <div><b>{{ brand.product_name }}</b> · <span class="badge">TeamLead</span><br><span class="muted">{{ user.email }}</span></div>
+  <form class="logout" method="post" action="{{ logout_path }}">{{ csrf_input(request) }}<button class="secondary" type="submit">Выйти</button></form>
+</header>
+<main class="wrap">
+  <h1>{{ title }}</h1>
+  <p class="muted">{{ description }}</p>
+  <div class="grid">
+    <div class="metric"><b>Available</b><strong>{{ balance.available_rub }} RUB</strong></div>
+    <div class="metric"><b>Frozen</b><strong>{{ balance.frozen_rub }} RUB</strong></div>
+    <div class="metric"><b>Debt</b><strong class="{{ 'bad' if balance.debt_rub else '' }}">{{ balance.debt_rub }} RUB</strong></div>
+    <div class="metric"><b>Общий заработок</b><strong>{{ balance.total_earned_rub }} RUB</strong></div>
+    <div class="metric"><b>Уже выплачено с fee</b><strong>{{ balance.total_paid_rub }} RUB</strong></div>
+    <div class="metric"><b>Gross назначенных сделок</b><strong>{{ total_gross_rub }} RUB</strong></div>
+    <div class="metric"><b>Доход за трейдеров</b><strong>{{ trader_income_rub }} RUB</strong><span class="muted">оборот {{ trader_gross_rub }} RUB</span></div>
+    <div class="metric"><b>Доход за мерчантов</b><strong>{{ merchant_income_rub }} RUB</strong><span class="muted">оборот {{ merchant_gross_rub }} RUB</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="section-title"><h2>Мои трейдеры</h2><span class="badge">{{ trader_rows|length }}</span></div>
+    <div class="note">Показываются только идентификатор кабинета, email и финансовая статистика TeamLead. Реквизиты, карты и телефоны недоступны.</div>
+    <div class="table"><table>
+      <tr><th>Трейдер</th><th>Процент</th><th>Успешный gross</th><th>Начислено</th><th>Операций</th></tr>
+      {% for row in trader_rows %}<tr><td><b>{{ row.email }}</b></td><td>{{ row.commission_percent }}%</td><td>{{ row.gross_rub }} RUB</td><td>{{ row.accrual_rub }} RUB</td><td>{{ row.operations }}</td></tr>
+      {% else %}<tr><td colspan="5">Активных назначений пока нет.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title"><h2>Мои мерчанты</h2><span class="badge">{{ merchant_rows|length }}</span></div>
+    <div class="note">Показаны только название и финансовая статистика TeamLead. API credentials и внутренние данные мерчанта недоступны.</div>
+    <div class="table"><table>
+      <tr><th>Мерчант</th><th>Процент</th><th>Успешный gross</th><th>Начислено</th><th>Операций</th></tr>
+      {% for row in merchant_rows %}<tr><td><b>{{ row.name }}</b></td><td>{{ row.commission_percent }}%</td><td>{{ row.gross_rub }} RUB</td><td>{{ row.accrual_rub }} RUB</td><td>{{ row.operations }}</td></tr>
+      {% else %}<tr><td colspan="5">Активных назначений пока нет.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Вывод USDT TRC20</h2>
+    {{ render_ui_message(['teamlead','settlements']) }}
+    <div class="grid">
+      <div class="metric"><b>Получает TeamLead</b><strong>requested USDT</strong></div>
+      <div class="metric"><b>Комиссия сверх выплаты</b><strong>5 USDT</strong></div>
+      <div class="metric"><b>Cooldown после completed</b><strong>168 часов</strong></div>
+      <div class="metric"><b>Следующий вывод</b><strong>{% if next_settlement_at %}{{ next_settlement_at|dt_full }}{% else %}доступен{% endif %}</strong></div>
+    </div>
+    {% if pending_settlement %}
+      <div class="note wait"><b>Есть pending settle.</b> Новый запрос запрещён до completed/rejected. Заморожено {{ pending_settlement.total_debit_rub }} RUB.</div>
+    {% elif balance.debt_rub > 0 %}
+      <div class="note bad"><b>Вывод заблокирован:</b> сначала будущими начислениями должен быть погашен debt {{ balance.debt_rub }} RUB.</div>
+    {% else %}
+      <form method="post" action="{{ cabinet_base }}/teamlead/settlements/request" data-confirm="Создать TeamLead settle и заморозить RUB-эквивалент выплаты плюс 5 USDT?">
+        {{ csrf_input(request) }}
+        <input type="hidden" name="idempotency_key" value="{{ settlement_idempotency_key }}">
+        <label>Сумма, которую вы хотите получить, USDT</label>
+        <input type="number" name="requested_usdt" min="0.000001" step="0.000001" required>
+        <label>Кошелёк TRC20</label>
+        <input name="wallet_address" minlength="34" maxlength="34" pattern="T[1-9A-HJ-NP-Za-km-z]{33}" required placeholder="T...">
+        <button type="submit">Создать settle</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Начисления за трейдеров</h2>
+    <div class="table"><table>
+      <tr><th>Дата</th><th>Источник</th><th>Трейдер</th><th>Gross</th><th>% snapshot</th><th>Начисление</th><th>В available</th><th>В debt</th><th>Статус</th></tr>
+      {% for row in accruals %}<tr><td>{{ row.created_at|dt_compact }}</td><td><span class="badge">За трейдера</span></td><td>{{ teamlead_trader_labels.get(row.trader_id, 'Archived trader') }}</td><td>{{ row.gross_rub }}</td><td>{{ row.commission_percent_snapshot }}%</td><td>{{ row.accrual_rub }}</td><td>{{ row.credited_to_available_rub }}</td><td>{{ row.applied_to_debt_rub }}</td><td>{{ row.status }}{% if row.reversal_reason %}<br><span class="bad">{{ row.reversal_reason }}</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="9">Начислений нет.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Начисления за мерчантов</h2>
+    <div class="table"><table>
+      <tr><th>Дата</th><th>Источник</th><th>Мерчант</th><th>Gross</th><th>% snapshot</th><th>Начисление</th><th>В available</th><th>В debt</th><th>Статус</th></tr>
+      {% for row in merchant_accruals %}<tr><td>{{ row.created_at|dt_compact }}</td><td><span class="badge">За мерчанта</span></td><td>{{ teamlead_merchant_labels.get(row.merchant_id, 'Архивный мерчант') }}</td><td>{{ row.gross_rub }}</td><td>{{ row.commission_percent_snapshot }}%</td><td>{{ row.accrual_rub }}</td><td>{{ row.credited_to_available_rub }}</td><td>{{ row.applied_to_debt_rub }}</td><td>{{ row.status }}{% if row.reversal_reason %}<br><span class="bad">{{ row.reversal_reason }}</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="9">Начислений нет.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>История settle</h2>
+    <div class="table"><table>
+      <tr><th>Requested at</th><th>Wallet</th><th>USDT + fee</th><th>Rate snapshot</th><th>Total RUB</th><th>Status</th><th>Result</th></tr>
+      {% for row in settlements %}<tr><td>{{ row.requested_at|dt_compact }}</td><td class="mono">{{ row.wallet_address }}</td><td>{{ row.requested_usdt }} + {{ row.fee_usdt }}</td><td>{{ row.rapira_rate_rub }} {{ row.rate_symbol }} {{ row.rate_side }}<br>{{ row.rate_source }} · {{ row.freshness_basis }}<br>fetched {{ row.fetched_at|dt_full }}{% if row.provider_timestamp %}<br>provider {{ row.provider_timestamp|dt_full }}{% endif %}</td><td>{{ row.total_debit_rub }}</td><td>{{ row.status }}</td><td>{% if row.reject_reason %}<span class="bad">{{ row.reject_reason }}</span>{% elif row.tx_hash %}<span class="mono">{{ row.tx_hash }}</span>{% else %}—{% endif %}</td></tr>
+      {% else %}<tr><td colspan="7">Запросов нет.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Immutable ledger и reconciliation</h2>
+    <div class="note {{ 'ok' if reconciliation.reconciled else 'bad' }}"><b>{{ 'Reconciled' if reconciliation.reconciled else 'Обнаружено расхождение' }}</b> · {{ reconciliation.checks }}</div>
+    <div class="table"><table>
+      <tr><th>Дата</th><th>Тип</th><th>Источник</th><th>Сумма RUB</th><th>Available after</th><th>Frozen after</th><th>Debt after</th><th>Причина</th></tr>
+      {% for row in ledger %}<tr><td>{{ row.created_at|dt_compact }}</td><td>{{ row.entry_type }}</td><td>{% if row.source_type == 'merchant_referral' %}За мерчанта{% elif row.source_type == 'trader_referral' or row.accrual_id %}За трейдера{% else %}Общий баланс{% endif %}</td><td>{{ row.amount_rub }}</td><td>{{ row.available_after }}</td><td>{{ row.frozen_after }}</td><td>{{ row.debt_after }}</td><td>{{ row.reason }}</td></tr>
+      {% else %}<tr><td colspan="8">Ledger пуст.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Безопасность</h2>
+    {{ render_ui_message(['security']) }}
+    <div class="note">2FA обязательна для TeamLead и для каждого финансового запроса. Отключение 2FA для этой роли запрещено.</div>
+    <form method="post" action="{{ cabinet_base }}/security/password" data-confirm="Изменить пароль и завершить текущие сессии?">
+      {{ csrf_input(request) }}
+      <label>Текущий пароль</label><input type="password" name="current_password" required>
+      <label>Новый пароль</label><input type="password" name="new_password" minlength="10" required>
+      <button type="submit">Изменить пароль</button>
+    </form>
+  </section>
+</main>
+<script nonce="{{ csp_nonce(request) }}">
+document.querySelectorAll('form[data-confirm]').forEach(function(form){
+  form.addEventListener('submit',function(event){
+    if(!window.confirm(form.dataset.confirm)){event.preventDefault();}
+  });
+});
+</script>
+</body>
+</html>

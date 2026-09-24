@@ -1,0 +1,48 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import attention_panel, form_field, status_badge %}
+{% block content %}
+<header class="ts-workspace-header">
+  <div><p class="ts-eyebrow">Профиль и безопасность</p><h1>Аккаунт</h1><p>{{ user.email }} · {{ profile.eyebrow }}. Пароль, 2FA и текущая сессия.</p></div>
+  <div class="ts-workspace-header__state">{{ status_badge('2FA включена' if user.twofa_enabled else '2FA не включена', 'positive' if user.twofa_enabled else 'attention', 'shield') }}</div>
+</header>
+{% if twofa_required and not user.twofa_enabled %}{{ attention_panel('Для этой роли обязательна 2FA', 'Остальные разделы останутся недоступны, пока настройка не завершена.', 'critical') }}{% endif %}
+<div class="ts-security-grid">
+  <section class="ts-surface ts-security-card">
+    <div class="ts-panel-heading"><div><span class="ts-kicker">Пароль</span><h2>Сменить пароль</h2></div></div>
+    <p class="ts-section-copy">После смены пароля потребуется снова войти в кабинет на всех устройствах.</p>
+    <form method="post" action="{{ cabinet_base }}/security/password" class="ts-form-stack">{{ csrf_input(request) }}
+      {{ form_field('Текущий пароль', 'current_password', 'password', 'current-password', True) }}
+      {{ form_field('Новый пароль', 'new_password', 'password', 'new-password', True, 'Не менее 10 символов.') }}
+      <button class="ts-button ts-button--primary" type="submit">Обновить пароль</button>
+    </form>
+  </section>
+
+  <section class="ts-surface ts-security-card">
+    <div class="ts-panel-heading"><div><span class="ts-kicker">Дополнительная защита</span><h2>Двухфакторная защита</h2></div></div>
+    {% if not user.twofa_secret %}
+      <p class="ts-section-copy">Создайте одноразовый QR-код, затем подтвердите подключение кодом из приложения.</p>
+      <form method="post" action="{{ cabinet_base }}/security/2fa/prepare">{{ csrf_input(request) }}<button class="ts-button ts-button--primary" type="submit">Создать QR-код</button></form>
+    {% elif not user.twofa_enabled %}
+      <p class="ts-section-copy">Отсканируйте QR-код в приложении для двухфакторной аутентификации. Код настройки отображается только в защищённом кабинете.</p>
+      <div class="ts-qr"><img src="{{ security_qr }}" alt="QR-код для настройки 2FA" width="220" height="220"></div>
+      <form method="post" action="{{ cabinet_base }}/security/2fa/enable" class="ts-form-stack">{{ csrf_input(request) }}
+        {{ form_field('Код подтверждения', 'otp', 'text', 'one-time-code', True, 'Введите 6 цифр из приложения.', 'numeric') }}
+        <button class="ts-button ts-button--primary" type="submit">Подключить 2FA</button>
+      </form>
+    {% else %}
+      <div class="ts-security-state"><span>{{ status_badge('Защита активна', 'positive', 'shield') }}</span><p>Вход требует действующий одноразовый код.</p></div>
+      {% if role in ['superadmin','admin','support','teamlead'] %}
+        <p class="ts-section-copy">Для сотрудников отключение 2FA запрещено правилами безопасности.</p>
+      {% else %}
+        <form method="post" action="{{ cabinet_base }}/security/2fa/disable" class="ts-form-stack">{{ csrf_input(request) }}
+          {{ form_field('Текущий 2FA-код', 'otp', 'text', 'one-time-code', True, '', 'numeric') }}
+          <button class="ts-button ts-button--danger" type="submit">Отключить 2FA</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+
+

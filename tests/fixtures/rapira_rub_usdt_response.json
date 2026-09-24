@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "symbol": "USDT/RUB",
+      "askPrice": 81.42,
+      "bidPrice": 81.41,
+      "close": 81.41,
+      "baseCurrency": "RUB",
+      "quoteCurrency": "USDT"
+    }
+  ]
+}

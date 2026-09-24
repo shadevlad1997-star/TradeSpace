@@ -1,0 +1,41 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "eligibility": {
+      "debt_blocks": true,
+      "one_pending": true,
+      "positive_available": true
+    },
+    "money": {
+      "available_to_frozen": true,
+      "completion_consumes": true,
+      "fee_usdt": "5.000000",
+      "rejection_releases": true
+    },
+    "reconciliation": true,
+    "settlement": {
+      "completed_tx_hash_unique": true,
+      "completion_idempotent": true,
+      "cooldown_hours": 168,
+      "states": [
+        "pending",
+        "rejected",
+        "completed"
+      ]
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_teamlead_postgres.py::test_postgres_settlement_complete_uses_requested_rub_and_tx_hash_unique_for_completed",
+      "tests/test_teamlead_postgres.py::test_postgres_settlement_fee_freeze_reject_complete_and_168_hour_cooldown"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_teamlead_postgres.py": "2367e5d38b3e22af66641501d337ec0e979f77cd6a42b443a9822583844c3bee"
+    }
+  },
+  "scenario_id": "GB-14",
+  "schema_version": 1,
+  "title": "TeamLead settlement lifecycle"
+}

@@ -1,0 +1,32 @@
+{% macro commission_tier_form(title, entity_type, entity_id, action, tiers) %}
+<div class="modal-section panel commission-tier-panel" data-commission-entity="{{ entity_type }}:{{ entity_id }}">
+  <h3>{{ title }}</h3>
+  <p class="muted small">Все четыре диапазона сохраняются одновременно. Границы фиксированы, валюта — RUB.</p>
+  <form method="post" action="{{ action }}" data-confirm="Сохранить новую версию комиссий?" data-commission-tier-form data-tier-state='{{ tiers|tojson }}'>
+    {{ csrf_input(request) }}
+    <label>Метод оплаты</label>
+    <select name="payment_method" data-commission-method>
+      {% for method in payment_method_options %}
+      <option value="{{ method.value }}" {% if method.value == 'sbp' %}selected{% endif %}>{{ method.label }}</option>
+      {% endfor %}
+    </select>
+    <div class="table-wrap commission-tier-table">
+      <table>
+        <thead><tr><th>Сумма чека</th><th>Комиссия, %</th><th>Состояние</th><th>Версия</th></tr></thead>
+        <tbody>
+        {% for tier in commission_tier_ranges %}
+          {% set initial = tiers.get('sbp', {}).get(tier.key, {}) %}
+          <tr>
+            <td><b>{{ tier.label }}</b><div class="compact-note">[{{ tier.min_amount }}, {{ tier.max_amount }})</div></td>
+            <td><input name="{{ tier.field }}" value="{{ initial.get('rate_percent', '') }}" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" autocomplete="off" required data-commission-rate="{{ tier.key }}" aria-label="Комиссия {{ tier.label }}"></td>
+            <td><span class="status-pill {{ 'status-ok' if initial.get('configured') else 'status-wait' }}" data-commission-status="{{ tier.key }}">{{ 'Настроено' if initial.get('configured') else 'Не настроено' }}</span></td>
+            <td><span data-commission-version="{{ tier.key }}">{% if initial.get('configured') %}v{{ initial.get('version') }}{% else %}—{% endif %}</span><div class="compact-note" data-commission-updated="{{ tier.key }}">{{ initial.get('updated_at', '') }}</div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button class="primary" type="submit">Сохранить комиссии</button>
+  </form>
+</div>
+{% endmacro %}

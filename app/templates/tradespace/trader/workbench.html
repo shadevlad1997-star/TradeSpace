@@ -1,0 +1,109 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state, attention_panel %}
+{% from "tradespace/trader/_components.html" import page_header, operation_card, operation_table, money_strip, countdown %}
+{% block content %}
+{{ page_header('', 'Работа', '', trader.traffic_label, 'positive' if trader.traffic_status in ['active','reinstated_full'] else 'attention') }}
+{% if trader.active_appeal_count or trader.unavailable_requisite_count or trader.aggregates.get('urgent_count', 0) %}
+<section class="ts-attention-board" aria-label="Требуют внимания">
+  <div><strong>Требуют внимания</strong><span>События, которые требуют вашего решения</span></div>
+  {% if trader.aggregates.get('urgent_count', 0) %}<a href="#active-work"><b>{{ trader.aggregates.get('urgent_count') }}</b><span>операций истекают до 5 минут</span></a>{% endif %}
+  {% if trader.active_appeal_count %}<a href="{{ cabinet_base }}/tradespace/disputes"><b>{{ trader.active_appeal_count }}</b><span>активных споров</span></a>{% endif %}
+  {% if trader.unavailable_requisite_count %}<a href="{{ cabinet_base }}/tradespace/requisites"><b>{{ trader.unavailable_requisite_count }}</b><span>реквизитов недоступно</span></a>{% endif %}
+</section>
+{% endif %}
+
+<section class="ts-workbench{% if trader.selected_operation %} has-selection{% else %} has-overview{% endif %}" id="active-work" data-component="TraderWorkbench">
+  <aside class="ts-work-queue" aria-label="Активная очередь">
+    <header class="ts-panel-heading">
+      <div><span class="ts-kicker">Очередь</span><h2>Активная работа</h2></div>
+      <span class="ts-count">{{ trader.active_operations|length }}</span>
+    </header>
+    {% if trader.active_operations %}
+    <div class="ts-operation-list">
+      {% for row in trader.active_operations %}{{ operation_card(row, trader.selected_operation.id if trader.selected_operation else '') }}{% endfor %}
+    </div>
+    {% else %}
+      {{ empty_state('Очередь пуста', 'Новые назначенные операции появятся здесь автоматически.', 'pulse') }}
+    {% endif %}
+  </aside>
+
+  <article class="ts-operation-workspace">
+    {% if trader.selected_operation %}
+      {% set op = trader.selected_operation %}
+      <header class="ts-operation-heading">
+        <div><a href="{{ cabinet_base }}" class="ts-back-link">← К очереди</a><p class="ts-kicker">Операция {{ op.short_id }}</p><h2>{{ money_value(op.amount, op.currency) }}</h2></div>
+        <div>{{ status_badge(op.status_label, op.status_tone) }}{% if op.remaining_seconds > 0 %}{{ countdown(op.remaining_seconds, op.expires_at) }}{% endif %}</div>
+      </header>
+      <div class="ts-fact-grid">
+        <div><span>Способ</span><strong>{{ op.method_label }}</strong><small>{{ op.provider_name or '—' }}</small></div>
+        <div><span>Реквизит</span><strong class="ts-sensitive-value">{{ op.requisite or '—' }}</strong><small>{{ op.recipient_name or '—' }}</small></div>
+        <div><span>Создана</span><strong>{{ op.created_at|dt_compact }}</strong><small>Истекает {{ op.expires_at|dt_compact }}</small></div>
+        <div><span>Внешний ID</span><strong><code>{{ op.external_id_short }}</code></strong><button class="ts-inline-copy" type="button" data-copy-value="{{ op.external_id }}">Копировать</button></div>
+      </div>
+
+      <section class="ts-work-section">
+        <div class="ts-panel-heading"><div><span class="ts-kicker">Финансовый контекст</span><h3>Резерв и расчёт</h3></div></div>
+        <div class="ts-financial-breakdown">
+          <div><span>{{ op.reserve_label }}</span>{% if op.current_hold is not none %}{{ money_value(op.current_hold, 'RUB') }}{% else %}<strong>Нужна сверка</strong>{% endif %}<small>Первоначальный резерв: {{ op.trader_hold }} RUB</small></div>
+          <div><span>Списание при оплате</span>{{ money_value(op.trader_settlement, 'RUB') }}</div>
+          <div><span>Комиссия трейдера</span>{{ money_value(op.trader_profit, 'RUB') }}</div>
+        </div>
+      </section>
+
+      <section class="ts-work-section">
+        <div class="ts-panel-heading"><div><span class="ts-kicker">История</span><h3>Ход операции</h3></div></div>
+        <ol class="ts-timeline">{% for event in op.timeline %}
+          <li class="is-{{ event.tone }}"><i></i><div><strong>{{ event.label }}</strong><time>{{ event.created_at|dt_compact }}</time>{% if event.description %}<p>{{ event.description }}</p>{% endif %}</div></li>
+        {% endfor %}</ol>
+      </section>
+
+      {% if op.sms_evidence %}
+      <section class="ts-work-section">
+        <div class="ts-panel-heading"><div><span class="ts-kicker">Сигналы</span><h3>Платёжные сигналы</h3></div></div>
+        {% for evidence in op.sms_evidence %}<div class="ts-evidence-row"><span>{{ evidence.sender }}</span>{% if evidence.parsed_amount %}{{ money_value(evidence.parsed_amount, 'RUB') }}{% endif %}<time>{{ evidence.created_at|dt_compact }}</time>{% if evidence.review_required %}{{ status_badge('Нужна проверка', 'attention') }}{% endif %}</div>{% endfor %}
+      </section>
+      {% endif %}
+
+      <footer class="ts-action-dock">
+        <div><strong>{{ op.status_label }}</strong><span>{% if op.can_confirm %}После подтверждения дождитесь ответа системы.{% elif op.has_appeal %}Действия выполняются в разделе «Споры».{% else %}Для текущего состояния действий нет.{% endif %}</span></div>
+        {% if op.has_appeal %}<a class="ts-button ts-button--secondary" href="{{ cabinet_base }}/tradespace/disputes">Открыть спор</a>{% endif %}
+        {% if op.can_confirm %}<button class="ts-button ts-button--primary" type="button" data-dialog-open="confirm-{{ op.id }}">Подтвердить оплату</button>{% endif %}
+      </footer>
+      {% if op.can_confirm %}
+      <dialog class="ts-dialog" id="confirm-{{ op.id }}">
+        <div class="ts-dialog__header"><h2>Подтвердить оплату</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+        <p>Проверьте сумму {{ op.amount }} {{ op.currency }}, {{ op.method_label }} и реквизит {{ op.requisite }}. Статус изменится только после ответа сервера.</p>
+        <form method="post" action="{{ op.confirm_url }}" data-submit-once>{{ csrf_input(request) }}
+          <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Да, оплата получена</button></div>
+        </form>
+      </dialog>
+      {% endif %}
+    {% else %}
+      <div class="ts-workspace-overview">
+        <span class="ts-kicker">Рабочая область операции</span>
+        <h2>{% if trader.active_operations %}Выберите операцию из очереди{% else %}Активных операций нет{% endif %}</h2>
+        <p>{% if trader.active_operations %}Здесь откроются платёжные данные, финансовый контекст, история и доступное действие.{% else %}Состояние обновится при следующем назначении. Проверьте доступность реквизитов и трафика.{% endif %}</p>
+        {{ money_strip(trader) }}
+        <div class="ts-workspace-links"><a href="{{ cabinet_base }}/tradespace/requisites">Проверить реквизиты</a><a href="{{ cabinet_base }}/tradespace/history">Открыть историю</a></div>
+      </div>
+    {% endif %}
+  </article>
+
+  <aside class="ts-context-rail">
+    <div class="ts-panel-heading"><div><span class="ts-kicker">Средства</span><h2>Средства</h2></div></div>
+    {{ money_strip(trader) }}
+    <div class="ts-health-list">
+      <div><span>Реквизиты доступны</span><strong>{{ trader.requisites|selectattr('is_available')|list|length }} / {{ trader.requisites|length }}</strong></div>
+      <div><span>Активные операции</span><strong>{{ trader.aggregates.get('active_count', 0) }}</strong></div>
+      <div><span>Оплачено сегодня</span><strong>{{ trader.aggregates.get('paid_today_count', 0) }}</strong></div>
+    </div>
+    {% if not trader.finance_reconciled %}{{ attention_panel('Нужна проверка финансовых данных', 'Контрольная сверка баланса и истории движений не совпала. Обратитесь в поддержку перед продолжением работы.', 'critical') }}{% endif %}
+  </aside>
+</section>
+
+<section class="ts-section-block">
+  <div class="ts-panel-heading"><div><span class="ts-kicker">Последние операции</span><h2>Недавняя активность</h2></div><a href="{{ cabinet_base }}/tradespace/history">Вся история</a></div>
+  {{ operation_table(trader.recent_operations, 'История пока пуста', 'Завершённые операции появятся после первого результата.') }}
+</section>
+{% endblock %}
+

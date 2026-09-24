@@ -1,0 +1,80 @@
+{% macro icon(name, size=18) -%}
+<svg class="ts-icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  {% if name == 'pulse' %}<path d="M3 12h4l2.2-6 4.1 12 2.1-6H21"/>
+  {% elif name == 'chevron-down' %}<path d="m6 9 6 6 6-6"/>
+  {% elif name == 'history' %}<path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 4v4.6h4.6M12 8v4l2.8 1.8"/>
+  {% elif name == 'card' %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h4"/>
+  {% elif name == 'wallet' %}<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v14H6.5A2.5 2.5 0 0 1 4 16.5z"/><path d="M15 10h6v5h-6a2.5 2.5 0 0 1 0-5z"/>
+  {% elif name == 'dispute' %}<path d="M5 5h14v11H9l-4 3z"/><path d="M9 9h6M9 12h4"/>
+  {% elif name == 'chart' %}<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-7M20 16V5"/>
+  {% elif name == 'bell' %}<path d="M6 9a6 6 0 0 1 12 0v4l2 3H4l2-3zM10 20h4"/>
+  {% elif name == 'shield' %}<path d="M12 3l7 3v5c0 4.7-2.9 8.3-7 10-4.1-1.7-7-5.3-7-10V6z"/><path d="M9 12l2 2 4-5"/>
+  {% elif name == 'overview' %}<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+  {% elif name == 'settlement' %}<path d="M4 7h16M7 4l-3 3 3 3M20 17H4M17 14l3 3-3 3"/>
+  {% elif name == 'integration' %}<path d="M8 12h8M6 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2M18 8h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><circle cx="9" cy="12" r="3"/><circle cx="15" cy="12" r="3"/>
+  {% elif name == 'team' or name == 'users' %}<circle cx="9" cy="8" r="3"/><path d="M3 19c.5-4 2.5-6 6-6s5.5 2 6 6"/><circle cx="17" cy="9" r="2"/><path d="M16 14c3 0 4.5 1.5 5 4"/>
+  {% elif name == 'settings' %}<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>
+  {% else %}<circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/>{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro status_badge(label, tone='neutral', icon_name='') -%}
+<span class="ts-status ts-status--{{ tone }}">{% if icon_name %}{{ icon(icon_name, 14) }}{% endif %}<span>{{ label }}</span></span>
+{%- endmacro %}
+
+{% macro money_value(value, currency='RUB', muted=False) -%}
+<span class="ts-money{% if muted %} ts-money--muted{% endif %}"><span class="ts-money__value">{{ value }}</span><span class="ts-money__currency">{{ currency }}</span></span>
+{%- endmacro %}
+
+{% macro feedback_message(message) -%}
+{% if message %}<div class="ts-feedback ts-feedback--{{ message.kind|default('info') }}" data-ui-code="{{ message.code }}" role="{{ 'alert' if message.kind in ['blocking','security','validation'] else 'status' }}">
+  <span class="ts-feedback__icon">{{ icon('shield' if message.kind == 'security' else 'info', 18) }}</span>
+  <div><strong>{{ 'Требуется внимание' if message.kind in ['blocking','security'] else 'Сообщение' }}</strong><p>{{ message.message }}</p></div>
+</div>{% endif %}
+{%- endmacro %}
+
+{% macro empty_state(title, description, icon_name='overview') -%}
+<section class="ts-empty" data-component="EmptyState">
+  <div class="ts-empty__icon">{{ icon(icon_name, 24) }}</div>
+  <h2>{{ title }}</h2>{% if description %}<p>{{ description }}</p>{% endif %}
+</section>
+{%- endmacro %}
+
+{% macro attention_panel(title, description, tone='attention') -%}
+<section class="ts-attention ts-attention--{{ tone }}" data-component="AttentionPanel">
+  <div class="ts-attention__icon">{{ icon('shield', 20) }}</div>
+  <div><h2>{{ title }}</h2>{% if description %}<p>{{ description }}</p>{% endif %}</div>
+</section>
+{%- endmacro %}
+
+{% macro form_field(label, name, type='text', autocomplete='', required=False, hint='', inputmode='') -%}
+<label class="ts-field" for="{{ name }}">
+  <span class="ts-field__label">{{ label }}</span>
+  <input class="ts-input" id="{{ name }}" name="{{ name }}" type="{{ type }}"{% if autocomplete %} autocomplete="{{ autocomplete }}"{% endif %}{% if inputmode %} inputmode="{{ inputmode }}"{% endif %}{% if required %} required{% endif %}>
+  {% if hint %}<span class="ts-field__hint">{{ hint }}</span>{% endif %}
+</label>
+{%- endmacro %}
+
+{% macro copy_control(label, target_id, value, masked=True) -%}
+<div class="ts-copy" data-copy-control>
+  <span class="ts-copy__label">{{ label }}</span>
+  <div class="ts-copy__row">
+    <code id="{{ target_id }}" class="ts-copy__value{% if masked %} is-masked{% endif %}" data-secret-value>{{ value }}</code>
+    {% if masked %}<button class="ts-button ts-button--quiet" type="button" data-reveal-target="{{ target_id }}" aria-pressed="false">Показать</button>{% endif %}
+    <button class="ts-button ts-button--secondary" type="button" data-copy-target="{{ target_id }}">Копировать</button>
+  </div>
+  <span class="ts-copy__result" aria-live="polite"></span>
+</div>
+{%- endmacro %}
+
+{% macro async_state_boundary(label='Загрузка данных') -%}
+<div class="ts-async" data-component="AsyncStateBoundary" aria-live="polite" aria-busy="false"><span class="ts-async__dot"></span>{{ label }}</div>
+{%- endmacro %}
+
+{% macro action_dialog(dialog_id, title, description) -%}
+<dialog class="ts-dialog" id="{{ dialog_id }}" data-component="ActionDialog">
+  <div class="ts-dialog__header"><h2>{{ title }}</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+  <p>{{ description }}</p>
+  <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Закрыть</button></div>
+</dialog>
+{%- endmacro %}

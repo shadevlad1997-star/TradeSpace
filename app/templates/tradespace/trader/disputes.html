@@ -1,0 +1,44 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/trader/_components.html" import page_header, countdown %}
+{% block content %}
+{{ page_header('', 'Споры', '', 'Активных: ' ~ trader.active_appeal_count, 'attention' if trader.active_appeal_count else 'neutral') }}
+{% if trader.appeals %}
+<section class="ts-dispute-list">{% for appeal in trader.appeals %}
+  <article class="ts-dispute-card{% if appeal.can_act %} needs-action{% endif %}">
+    <header><div><span class="ts-kicker">Спор {{ appeal.short_id }}</span><h2>{{ money_value(appeal.amount, appeal.currency) }}</h2></div>{{ status_badge(appeal.status_label, appeal.status_tone) }}</header>
+    <div class="ts-dispute-facts">
+      <div><span>Операция</span><a href="{{ appeal.operation_url }}"><code>{{ appeal.operation_short }}</code></a></div>
+      <div><span>Реквизит</span><strong class="ts-sensitive-value">{{ appeal.requisite or '—' }}</strong></div>
+      <div><span>Банк / провайдер</span><strong>{{ appeal.provider_name or '—' }}</strong></div>
+      <div><span>Срок ответа</span>{% if appeal.remaining_seconds > 0 %}{{ countdown(appeal.remaining_seconds, appeal.deadline_at) }}{% else %}<strong>Истёк</strong>{% endif %}</div>
+    </div>
+    {% if appeal.receipt_url or appeal.statement_url %}<div class="ts-evidence-links">{% if appeal.receipt_url %}<a href="{{ appeal.receipt_url }}" target="_blank" rel="noopener">Открыть: {{ appeal.receipt_name }}</a>{% endif %}{% if appeal.statement_url %}<a href="{{ appeal.statement_url }}" target="_blank" rel="noopener">Открыть: {{ appeal.statement_name }}</a>{% endif %}</div>{% endif %}
+    {% if appeal.messages %}<ol class="ts-message-list">{% for message in appeal.messages %}<li><span><strong>{{ message.author_label }}</strong><time>{{ message.created_at|dt_compact }}</time></span><p>{{ message.message }}</p>{% if message.has_attachment %}<small>Есть вложение</small>{% endif %}</li>{% endfor %}</ol>{% endif %}
+    {% if appeal.rejection_reason %}<p class="ts-case-note">Причина ответа: {{ appeal.rejection_reason }}{% if appeal.corrected_amount %} · корректная сумма {{ appeal.corrected_amount }} RUB{% endif %}</p>{% endif %}
+    {% if appeal.can_act %}<footer>
+      <button class="ts-button ts-button--primary" type="button" data-dialog-open="accept-{{ appeal.id }}">Принять</button>
+      <button class="ts-button ts-button--secondary" type="button" data-dialog-open="reject-{{ appeal.id }}">Отклонить и передать на проверку</button>
+    </footer>{% endif %}
+  </article>
+  {% if appeal.can_act %}
+  <dialog class="ts-dialog" id="accept-{{ appeal.id }}">
+    <div class="ts-dialog__header"><h2>Принять спор</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <p>Подтверждение отправит решение по спору. Проверьте данные операции перед продолжением.</p>
+    <form method="post" action="{{ appeal.accept_url }}" data-submit-once>{{ csrf_input(request) }}<div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Принять спор</button></div></form>
+  </dialog>
+  <dialog class="ts-dialog ts-dialog--wide" id="reject-{{ appeal.id }}">
+    <div class="ts-dialog__header"><h2>Отклонить спор</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <form method="post" action="{{ appeal.reject_url }}" enctype="multipart/form-data" class="ts-form-stack" data-submit-once>{{ csrf_input(request) }}
+      <label class="ts-field"><span class="ts-field__label">Причина</span><select class="ts-input" name="reason" required>{% for value,label in trader.rejection_reasons.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+      <label class="ts-field"><span class="ts-field__label">Корректная сумма — только для причины «неверная сумма»</span><input class="ts-input" name="corrected_amount" type="number" min="0.01" step="0.01"></label>
+      <label class="ts-field"><span class="ts-field__label">Выписка — обязательна для причины «платёж не поступил»</span><input class="ts-input" name="statement_file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf"></label>
+      <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Передать на проверку</button></div>
+    </form>
+  </dialog>
+  {% endif %}
+{% endfor %}</section>
+{% else %}{{ empty_state('Споров нет', 'Апелляции по связанным операциям появятся здесь.', 'dispute') }}{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,47 @@
+{% set deposit_view = deposit_filters.get('view','active') %}
+<!-- tradespace-partial:{{ 'trader-deposits' if role in ['operator','trader'] else 'generic-deposits' }}:{{ deposit_view }} -->
+{% if role in ['operator','trader'] %}
+  {% if deposit_view == 'active' %}
+    {% for d in deposits %}{% set dd = deposit_details.get(d.id|string, {}) %}
+    <tr>
+      <td data-label="Осталось"><span class="timer {{ 'timer-urgent' if dd.get('remaining_seconds',0) < 300 else ('timer-warning' if dd.get('remaining_seconds',0) < 600 else '') }}" data-countdown="{{ dd.get('remaining_seconds',0) }}">{{ '%02d:%02d'|format((dd.get('remaining_seconds',0)//60), (dd.get('remaining_seconds',0)%60)) }}</span></td>
+      <td data-label="Сумма"><span class="text-amount">{{ d.amount|money_rub }}</span></td>
+      <td data-label="Банк и метод"><div class="cell-stack"><span class="cell-main">{{ dd.get('provider_name') or dd.get('bank') or '—' }}</span><span class="cell-badge">{{ d.method|payment_method_label }}</span></div></td>
+      <td data-label="Реквизит / получатель"><div class="cell-stack"><div class="copy-line"><span class="cell-mono cell-ellipsis" title="{{ dd.get('requisite') or '—' }}">{{ dd.get('requisite') or '—' }}</span><button class="secondary icon-copy" type="button" data-copy-value="{{ dd.get('requisite') or '' }}">Copy</button></div><span class="cell-muted cell-ellipsis" title="{{ dd.get('receiver_name') or '—' }}">{{ dd.get('receiver_name') or '—' }}</span></div></td>
+      <td data-label="Статус"><span class="status-pill status-wait">{{ d.status|deposit_status_label }}</span></td>
+      <td data-label="Действие" class="action-column"><div class="actions-row"><button class="secondary btn-small details-button" type="button" data-modal-open="depositDetail{{ d.id }}">Подробнее</button>{% if dd.get('can_process') %}<form method="post" action="{{ cabinet_base }}/deposits/{{ d.id }}/confirm" data-confirm="Принять пополнение {{ d.amount }} {{ d.currency }}?">{{ csrf_input(request) }}<button class="primary btn-small" type="submit">Обработать</button></form>{% endif %}</div>
+        <template id="template-depositDetail{{ d.id }}"><div id="depositDetail{{ d.id }}" class="modal"><div class="modalbox modalbox-wide"><h2>Заявка на пополнение</h2><div class="detail-grid"><div class="detail-card"><b>Deposit ID</b><span class="cell-mono cell-wrap">{{ d.id }}</span></div><div class="detail-card"><b>External ID</b><span class="cell-mono cell-wrap">{{ d.external_id }}</span></div><div class="detail-card"><b>Создана</b>{{ d.created_at|dt_compact }}</div><div class="detail-card"><b>Истекает</b>{{ d.expires_at|dt_compact }}</div><div class="detail-card"><b>Метод</b>{{ d.method|payment_method_label }}</div><div class="detail-card"><b>Банк</b>{{ dd.get('provider_name') or dd.get('bank') or '—' }}</div><div class="detail-card"><b>Реквизит</b><span class="cell-mono cell-wrap">{{ dd.get('requisite') or '—' }}</span></div><div class="detail-card"><b>Получатель</b>{{ dd.get('receiver_name') or '—' }}</div><div class="detail-card"><b>Статус</b>{{ d.status|deposit_status_label }}</div><div class="detail-card"><b>Raw status / reason</b><span class="cell-mono">{{ d.status }} / {{ dd.get('failure_reason') or '—' }}</span></div></div><div class="modal-actions"><button class="secondary" type="button" data-modal-close="depositDetail{{ d.id }}">Закрыть</button></div></div></div></template>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="table-empty">Активных заявок нет</td></tr>{% endfor %}
+  {% else %}
+    {% for d in deposits %}{% set dd = deposit_details.get(d.id|string, {}) %}
+    <tr>
+      <td data-label="Дата"><span class="text-date" title="{{ d.updated_at|dt_full }}">{{ d.updated_at|dt_compact }}</span></td>
+      <td data-label="Сумма"><span class="text-amount">{{ d.amount|money_rub }}</span></td>
+      <td data-label="Банк и метод"><div class="cell-stack"><span class="cell-main">{{ dd.get('provider_name') or dd.get('bank') or '—' }}</span><span class="cell-badge">{{ d.method|payment_method_label }}</span></div></td>
+      <td data-label="Результат"><span class="status-pill {{ 'status-ok' if d.status == 'paid' else ('status-bad' if d.status in ['failed','expired','cancelled'] else 'status-neutral') }}">{{ d.status|deposit_status_label }}</span></td>
+      <td data-label="Причина">{{ dd.get('failure_reason','')|failure_reason_label }}</td>
+      <td data-label="Подробнее" class="action-column"><button class="secondary btn-small details-button" type="button" data-modal-open="depositDetail{{ d.id }}">Подробнее</button>
+        <template id="template-depositDetail{{ d.id }}"><div id="depositDetail{{ d.id }}" class="modal"><div class="modalbox modalbox-wide"><h2>История пополнения</h2><div class="detail-grid"><div class="detail-card"><b>Deposit ID</b><span class="cell-mono cell-wrap">{{ d.id }}</span></div><div class="detail-card"><b>External ID</b><span class="cell-mono cell-wrap">{{ d.external_id }}</span></div><div class="detail-card"><b>Создана</b>{{ d.created_at|dt_compact }}</div><div class="detail-card"><b>Обновлена</b>{{ d.updated_at|dt_compact }}</div><div class="detail-card"><b>Метод</b>{{ d.method|payment_method_label }}</div><div class="detail-card"><b>Банк</b>{{ dd.get('provider_name') or dd.get('bank') or '—' }}</div><div class="detail-card"><b>Реквизит</b><span class="cell-mono cell-wrap">{{ dd.get('requisite') or '—' }}</span></div><div class="detail-card"><b>Получатель</b>{{ dd.get('receiver_name') or '—' }}</div><div class="detail-card"><b>Статус</b>{{ d.status|deposit_status_label }}</div><div class="detail-card"><b>Raw status / reason</b><span class="cell-mono">{{ d.status }} / {{ dd.get('failure_reason') or '—' }}</span></div></div><div class="modal-actions"><button class="secondary" type="button" data-modal-close="depositDetail{{ d.id }}">Закрыть</button></div></div></div></template>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="table-empty">История пока пуста</td></tr>{% endfor %}
+  {% endif %}
+{% else %}
+  {% for d in deposits %}{% set dd = deposit_details.get(d.id|string, {}) %}
+  <tr>
+    <td><span class="cell-mono cell-ellipsis" title="{{ d.id }}">{{ d.id }}</span></td>
+    <td><span class="cell-mono cell-ellipsis" title="{{ d.external_id }}">{{ d.external_id }}</span></td>
+    {% if role == 'merchant' %}<td><span class="cell-ellipsis" title="{{ dd.get('trader_email') or '—' }}">{{ dd.get('trader_email') or '—' }}</span></td>{% endif %}
+    <td><span class="text-amount">{{ d.amount }} {{ d.currency }}</span></td>
+    <td><span class="badge">{{ d.method|payment_method_label }}</span></td>
+    <td><span class="cell-mono cell-ellipsis" title="{{ dd.get('requisite') or '—' }}">{{ dd.get('requisite') or '—' }}</span></td>
+    <td><div class="cell-stack"><span class="cell-label">{{ dd.get('provider_label') or 'Банк' }}</span><span class="cell-value cell-ellipsis" title="{{ dd.get('provider_name') or dd.get('bank') or '—' }}">{{ dd.get('provider_name') or dd.get('bank') or '—' }}</span></div></td>
+    <td><span class="cell-ellipsis" title="{{ dd.get('receiver_name') or '—' }}">{{ dd.get('receiver_name') or '—' }}</span></td>
+    <td>{% if dd.get('is_active') %}<span class="timer" data-countdown="{{ dd.get('remaining_seconds',0) }}">{{ '%02d:%02d'|format((dd.get('remaining_seconds',0)//60), (dd.get('remaining_seconds',0)%60)) }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td>{% if d.status in ['paid','completed'] %}<span class="status-pill status-ok">{{ d.status }}</span>{% elif d.status in ['created','pending','processing','appeal_opened'] %}<span class="status-pill status-wait">{{ d.status }}</span>{% elif d.status in ['failed','expired','cancelled','canceled'] %}<span class="status-pill status-bad">{{ d.status }}</span>{% else %}<span class="status-pill status-neutral">{{ d.status }}</span>{% endif %}</td>
+    <td>{% if role in ['admin','superadmin'] %}{% if d.status in ['created','pending','appeal_opened'] %}<div class="actions deposit-actions"><form method="post" action="{{ cabinet_base }}/deposits/{{ d.id }}/confirm" data-confirm="Принять пополнение {{ d.amount }} {{ d.currency }}?">{{ csrf_input(request) }}<button class="primary" type="submit">Принять</button></form><form method="post" action="{{ cabinet_base }}/deposits/{{ d.id }}/decline" data-confirm="Отклонить пополнение?">{{ csrf_input(request) }}<input name="reason" required maxlength="400" placeholder="Причина отклонения"><button class="dangerbtn" type="submit">Отклонить</button></form></div>{% else %}<span class="muted">обработано</span>{% endif %}{% else %}<span class="muted">просмотр</span>{% endif %}</td>
+  </tr>
+  {% else %}<tr><td colspan="{{ 11 if role == 'merchant' else 10 }}">Пока нет заявок</td></tr>{% endfor %}
+{% endif %}

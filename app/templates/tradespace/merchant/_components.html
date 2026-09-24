@@ -1,0 +1,48 @@
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% macro page_header(eyebrow, title, description, badge_label='', badge_tone='neutral') -%}
+<header class="ts-workspace-header ts-merchant-header" data-component="WorkspaceHeader">
+  <div>{% if eyebrow %}<p class="ts-eyebrow">{{ eyebrow }}</p>{% endif %}<h1>{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</div>
+  {% if badge_label %}<div class="ts-workspace-header__state">{{ status_badge(badge_label, badge_tone, 'shield') }}</div>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro balance_strip(merchant) -%}
+<section class="ts-merchant-balance" aria-label="Финансовое состояние">
+  <div class="ts-merchant-balance__primary"><span>Доступно для расчётов</span>{{ money_value(merchant.available, 'RUB') }}</div>
+  <div><span>Зарезервировано</span>{{ money_value(merchant.frozen, 'RUB') }}</div>
+  <div><span>Rolling к погашению</span>{{ money_value(merchant.rolling.outstanding, 'USDT') }}</div>
+  <div><span>Требует внимания</span><strong>{{ merchant.attention_count }}</strong></div>
+</section>
+{%- endmacro %}
+
+{% macro operation_table(rows, empty_title='Операций нет', empty_description='Подходящих операций не найдено.') -%}
+{% if rows %}
+<div class="ts-data-table-wrap ts-data-table-wrap--has-cards">
+<table class="ts-data-table ts-merchant-table">
+  <thead><tr><th>Операция</th><th>Статус</th><th>Сумма</th><th>Способ</th><th>Реквизит</th><th>Создана</th></tr></thead>
+  <tbody>{% for row in rows %}<tr>
+    <td><a class="ts-id-link" href="{{ row.detail_url }}"><strong title="{{ row.external_id }}">{{ row.external_short }}</strong><code>{{ row.short_id }}</code></a></td>
+    <td>{{ status_badge(row.status_label, row.status_tone) }}</td>
+    <td>{{ money_value(row.amount, row.currency) }}</td>
+    <td><strong>{{ row.method_label }}</strong><small>{{ row.provider_name or '—' }}</small></td>
+    <td><span class="ts-sensitive-value">{{ row.requisite or 'Не назначен' }}</span><small>{{ row.recipient_name or '—' }}</small></td>
+    <td><time datetime="{{ row.created_at.isoformat() }}">{{ row.created_at|dt_compact }}</time></td>
+  </tr>{% endfor %}</tbody>
+</table>
+</div>
+<div class="ts-mobile-cards">{% for row in rows %}<a class="ts-mobile-operation ts-merchant-operation-card" href="{{ row.detail_url }}">
+  <span>{{ status_badge(row.status_label, row.status_tone) }}<time>{{ row.created_at|dt_compact }}</time></span>
+  <strong>{{ money_value(row.amount, row.currency) }}</strong>
+  <p>{{ row.method_label }} · {{ row.provider_name or 'Реквизит не назначен' }}</p>
+  <code>{{ row.external_short }}</code>
+</a>{% endfor %}</div>
+{% else %}{{ empty_state(empty_title, empty_description, 'history') }}{% endif %}
+{%- endmacro %}
+
+{% macro paginator(merchant, base_url) -%}
+{% if merchant.page_count > 1 %}<nav class="ts-pager" aria-label="Страницы">
+  {% if merchant.page > 1 %}<a class="ts-button ts-button--secondary" href="{{ base_url }}?page={{ merchant.page - 1 }}&query={{ merchant.filters.query|urlencode }}&status={{ merchant.filters.status }}&payment_method={{ merchant.filters.payment_method }}&date={{ merchant.filters.date }}">Назад</a>{% endif %}
+  <span>Страница {{ merchant.page }} из {{ merchant.page_count }}</span>
+  {% if merchant.page < merchant.page_count %}<a class="ts-button ts-button--secondary" href="{{ base_url }}?page={{ merchant.page + 1 }}&query={{ merchant.filters.query|urlencode }}&status={{ merchant.filters.status }}&payment_method={{ merchant.filters.payment_method }}&date={{ merchant.filters.date }}">Далее</a>{% endif %}
+</nav>{% endif %}
+{%- endmacro %}

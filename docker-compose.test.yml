@@ -1,0 +1,47 @@
+name: tradespace-test
+
+services:
+  test-db:
+    image: postgres:16-alpine
+    # Test-only credentials; this service is not published to the host.
+    environment:
+      POSTGRES_USER: tradespace_test
+      POSTGRES_PASSWORD: tradespace_test
+      POSTGRES_DB: tradespace_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradespace_test -d tradespace_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  test-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  tests:
+    build: .
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    environment:
+      ENV: test
+      SECRET_KEY: test-secret-key-with-at-least-thirty-two-characters
+      ENCRYPTION_KEY: X0djOf3Ag4hSfN_PmH-aPSBaZGYoWsdFBGFzlNH3wlg=
+      SUPERADMIN_PASSWORD: test-superadmin-password
+      SUPERADMIN_2FA_SECRET: JBSWY3DPEHPK3PXP
+      DATABASE_URL: postgresql+asyncpg://tradespace_test:tradespace_test@test-db:5432/tradespace_test
+      SYNC_DATABASE_URL: postgresql+psycopg://tradespace_test:tradespace_test@test-db:5432/tradespace_test
+      TEST_DATABASE_URL: postgresql+asyncpg://tradespace_test:tradespace_test@test-db:5432/tradespace_test
+      REDIS_URL: redis://test-redis:6379/0
+      CELERY_BROKER_URL: redis://test-redis:6379/1
+      CELERY_RESULT_BACKEND: redis://test-redis:6379/2
+      RAPIRA_RATES_ENABLED: "false"
+    command: >
+      sh -lc "alembic upgrade head &&
+      pytest -q"

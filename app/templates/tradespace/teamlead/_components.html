@@ -1,0 +1,23 @@
+{% from "tradespace/components/ui.html" import money_value, status_badge, empty_state %}
+{% macro money(value, currency='RUB') %}{% if value is not none %}{{ money_value(value,currency) }}{% else %}<span class="ts-muted">Нет данных</span>{% endif %}{% endmacro %}
+{% macro header(kicker,title,description) %}<header class="ts-workspace-header"><div>{% if kicker %}<span class="ts-kicker">{{ kicker }}</span>{% endif %}<h1>{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</div></header>{% endmacro %}
+{% macro balance_band(lead) %}<section class="ts-tl-balance" aria-label="Финансовый счёт TeamLead">
+{% for key,label,note in [('available_rub','Доступно для расчёта','Средства TeamLead'),('frozen_rub','Зарезервировано','По запросу на рассмотрении'),('debt_rub','Долг к погашению','Погашается начислениями')] %}
+<div><span>{{ label }}</span>{{ money(lead.balance[key] if lead.balance else none) }}<small>{{ note }}</small></div>{% endfor %}
+</section>{% endmacro %}
+{% macro accrual_records(rows,empty=True) %}
+{% if rows %}<div class="ts-tl-statement" data-component="TeamLeadAccrualStatement">
+<div class="ts-tl-statement__head" aria-hidden="true"><span>Основание</span><span>Начисление</span><span>Распределение</span><span>Состояние</span></div>
+{% for r in rows %}<details class="ts-tl-record"><summary>
+<div class="ts-tl-record__identity"><span class="ts-kicker">{{ r.source_label }}</span><strong>{{ r.label }}</strong><small>{{ r.created_at|dt_compact }} · {{ r.deposit_short }}</small></div>
+<div><span class="ts-tl-mobile-label">Начисление</span>{{ money(r.accrual) }}<small>{{ r.percent }}% от суммы {{ r.gross }} RUB</small></div>
+<div class="ts-tl-allocation"><span>В доступные {{ money(r.available) }}</span><span>В погашение долга {{ money(r.debt) }}</span></div>
+<div>{{ status_badge(r.status_label,r.tone) }}<small>Подробности ↓</small></div>
+</summary><div class="ts-tl-record__detail"><dl class="ts-definition-list">
+<div><dt>ID начисления</dt><dd><code>{{ r.id }}</code></dd></div><div><dt>ID операции — основание</dt><dd><code>{{ r.deposit_id }}</code></dd></div>
+{% if r.reversed_at %}<div><dt>Сторнировано</dt><dd>{{ r.reversed_at|dt_compact }} UTC</dd></div>{% endif %}
+{% if r.reason %}<div><dt>Причина</dt><dd>{{ r.reason }}</dd></div>{% endif %}</dl>
+<p class="ts-note">Указана база реферального начисления. Две записи разных источников могут относиться к одной операции. Это не общий оборот команды. При сторно исходное распределение сохраняется в истории.</p>
+</div></details>{% endfor %}</div>
+{% elif empty %}{{ empty_state('Начислений не найдено','Измените фильтры или дождитесь оплаченных операций по вашим назначениям.','wallet') }}{% endif %}
+{% endmacro %}

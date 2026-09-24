@@ -1,0 +1,20 @@
+<div class="ts-form-grid">
+  <label><span>Способ</span><select name="method" required>{% for method in trader.payment_methods %}<option value="{{ method.value }}" {% if req and req.method == method.value %}selected{% endif %}>{{ method.label }}</option>{% endfor %}</select></label>
+  <label><span>Реквизит</span><input name="value" value="{{ req.value if req else '' }}" maxlength="255" required autocomplete="off"></label>
+  <label><span>Банк</span><select name="bank_code"><option value="">Не выбран / мобильный оператор</option>{% for bank in trader.banks %}<option value="{{ bank.code }}" {% if req and req.bank_code == bank.code %}selected{% endif %}>{{ bank.label }}</option>{% endfor %}</select></label>
+  <label><span>Мобильный оператор</span><select name="operator_code"><option value="">Не выбран</option>{% for operator in trader.operators %}<option value="{{ operator.code }}" {% if req and req.operator_code == operator.code %}selected{% endif %}>{{ operator.label }}</option>{% endfor %}</select></label>
+  <input type="hidden" name="bank_name" value="{{ req.provider_name if req else '' }}">
+  <label><span>Получатель</span><input name="full_name" value="{{ req.owner_name if req else '' }}" maxlength="160"></label>
+  <label><span>ID автоматизации</span><input name="automation_id" value="{{ req.automation_id if req else '' }}" maxlength="120"></label>
+  <label><span>Последние 4 цифры</span><input name="last4" value="{{ req.last4 if req else '' }}" maxlength="4" inputmode="numeric"></label>
+  <label><span>Суточный лимит, RUB</span><input name="daily_limit" value="{{ req.daily_limit if req else '500000.00' }}" type="number" min="0" step="0.01" required></label>
+  <label><span>Лимит операций</span><input name="operation_limit" value="{{ req.operation_limit if req else 50 }}" type="number" min="1" required></label>
+  <label><span>Запросов за период</span><input name="request_count" value="{{ req.request_count if req else 10 }}" type="number" min="1" required></label>
+  <label><span>Период</span><select name="timeframe"><option value="час" {% if not req or req.timeframe == 'час' %}selected{% endif %}>Час</option><option value="день" {% if req and req.timeframe == 'день' %}selected{% endif %}>День</option></select></label>
+  <label><span>Пауза после успеха, мин.</span><input name="success_delay_minutes" value="{{ req.success_delay_minutes if req else 0 }}" type="number" min="0" max="60"></label>
+  <label><span>Одновременных операций</span><input name="simultaneous_limit" value="{{ req.simultaneous_limit if req else 1 }}" type="number" min="1" max="50"></label>
+  <label><span>Минимальный чек, RUB</span><input name="min_check" value="{{ req.min_check if req else '100.00' }}" type="number" min="1" step="0.01"></label>
+  <label><span>Максимальный чек, RUB</span><input name="max_check" value="{{ req.max_check if req else '150000.00' }}" type="number" min="1" step="0.01"></label>
+  <label><span>Статус</span><select name="status"><option value="active" {% if not req or req.status == 'active' %}selected{% endif %}>Активен</option><option value="disabled" {% if req and req.status == 'disabled' %}selected{% endif %}>Отключён</option><option value="review" {% if req and req.status == 'review' %}selected{% endif %}>На проверке</option></select></label>
+</div>
+<p class="ts-form-note">Для СБП/карты выберите банк. Для мобильной коммерции выберите оператора.</p>

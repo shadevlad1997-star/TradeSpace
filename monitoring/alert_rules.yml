@@ -1,0 +1,64 @@
+groups:
+  - name: processing-platform-alerts
+    rules:
+      - alert: ProcessingApiDown
+        expr: up{job="processing-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Processing API is down
+          description: Prometheus cannot scrape the FastAPI /metrics endpoint.
+
+      - alert: ProcessingHighErrorRate
+        expr: |
+          sum(rate(processing_platform_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(processing_platform_http_requests_total[5m])), 1)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High HTTP 5xx error rate
+          description: More than 5 percent of API requests are failing with 5xx responses.
+
+      - alert: ProcessingHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(processing_platform_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High API latency p95
+          description: 95th percentile API latency is above 2 seconds.
+
+      - alert: ProcessingRateLimitSpike
+        expr: sum(rate(processing_platform_rate_limited_requests_total[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: Rate limit spike
+          description: Many requests are being blocked by application rate limiting.
+
+      - alert: ProcessingSuspiciousRequestSpike
+        expr: sum(rate(processing_platform_suspicious_requests_total[5m])) > 0.2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: Suspicious request spike
+          description: Suspicious paths or command-injection-like probes are being blocked.
+
+      - alert: ProcessingWebhookFailures
+        expr: increase(processing_platform_webhook_events_total{status=~"failed|blocked"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Webhook delivery failures
+          description: At least one webhook failed or was blocked in the last 10 minutes.

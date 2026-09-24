@@ -1,0 +1,48 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/trader/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'Реквизиты', '', 'Доступно: ' ~ (trader.requisites|selectattr('is_available')|list|length), 'positive' if trader.requisites|selectattr('is_available')|list|length else 'attention') }}
+<div class="ts-page-actions"><button class="ts-button ts-button--primary" type="button" data-dialog-open="create-requisite">Добавить реквизит</button></div>
+{% if trader.requisites %}
+<section class="ts-requisite-grid">{% for req in trader.requisites %}
+  <article class="ts-requisite-card{% if not req.is_available %} is-unavailable{% endif %}">
+    <header><div><span class="ts-kicker">{{ req.method_label }}</span><h2>{{ req.provider_name or 'Провайдер не указан' }}</h2></div>{{ status_badge(req.status_label, req.status_tone) }}</header>
+    <div class="ts-requisite-value"><code>{{ req.value }}</code><button class="ts-inline-copy" type="button" data-copy-value="{{ req.value }}">Копировать</button></div>
+    <p>{{ req.owner_name or 'Владелец не указан' }} · {{ req.traffic_label }}</p>
+    <dl>
+      <div><dt>Чек</dt><dd>{{ money_value(req.min_check, 'RUB') }} — {{ money_value(req.max_check, 'RUB') }}</dd></div>
+      <div><dt>Суточный лимит</dt><dd>{{ money_value(req.daily_limit, 'RUB') }}</dd></div>
+      <div><dt>Одновременно</dt><dd>{{ req.simultaneous_limit }}</dd></div>
+      <div><dt>Использований</dt><dd>{{ req.usage_count }}</dd></div>
+    </dl>
+    <footer>
+      <form method="post" action="{{ req.toggle_url }}" data-submit-once>{{ csrf_input(request) }}<button class="ts-button ts-button--secondary" type="submit">{{ 'Отключить' if req.enabled else 'Включить' }}</button></form>
+      <button class="ts-button ts-button--quiet" type="button" data-dialog-open="edit-{{ req.id }}">Изменить</button>
+      <button class="ts-button ts-button--danger-quiet" type="button" data-dialog-open="delete-{{ req.id }}">Удалить</button>
+    </footer>
+  </article>
+  <dialog class="ts-dialog ts-dialog--wide" id="edit-{{ req.id }}">
+    <div class="ts-dialog__header"><h2>Изменить реквизит</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <form method="post" action="{{ req.edit_url }}" class="ts-requisite-form" data-submit-once>{{ csrf_input(request) }}
+      {% include "tradespace/trader/_requisite_fields.html" %}
+      <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Сохранить</button></div>
+    </form>
+  </dialog>
+  <dialog class="ts-dialog" id="delete-{{ req.id }}">
+    <div class="ts-dialog__header"><h2>Удалить реквизит</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <p>Реквизит {{ req.value }} будет помечен удалённым и перестанет получать новые операции.</p>
+    <form method="post" action="{{ req.delete_url }}" data-submit-once>{{ csrf_input(request) }}<div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--danger" type="submit">Удалить</button></div></form>
+  </dialog>
+{% endfor %}</section>
+{% else %}{{ empty_state('Реквизитов нет', 'Добавьте первый реквизит, чтобы он мог получать операции.', 'card') }}{% endif %}
+
+<dialog class="ts-dialog ts-dialog--wide" id="create-requisite">
+  <div class="ts-dialog__header"><h2>Новый реквизит</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+  <form method="post" action="{{ cabinet_base }}/requisites/create" class="ts-requisite-form" data-submit-once>{{ csrf_input(request) }}
+    {% set req = none %}{% include "tradespace/trader/_requisite_fields.html" %}
+    <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Добавить</button></div>
+  </form>
+</dialog>
+{% endblock %}
+

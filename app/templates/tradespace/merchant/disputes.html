@@ -1,0 +1,20 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/merchant/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'Споры', '', merchant.active_appeal_count ~ ' активных', 'attention' if merchant.active_appeal_count else 'neutral') }}
+<section class="ts-dispute-layout">
+  <div class="ts-dispute-list">
+  {% if merchant.appeals %}{% for appeal in merchant.appeals %}<article class="ts-appeal-card">
+    <header><div><span class="ts-kicker">Appeal {{ appeal.short_id }}</span><h2><a href="{{ appeal.operation_url }}">Операция {{ appeal.operation_short }}</a></h2></div>{{ status_badge(appeal.status_label,appeal.status_tone) }}</header>
+    <div class="ts-appeal-summary"><div><span>Сумма</span>{{ money_value(appeal.amount,appeal.currency) }}</div><div><span>Реквизит</span><strong>{{ appeal.requisite or '—' }}</strong></div><div><span>Банк</span><strong>{{ appeal.provider_name or '—' }}</strong></div><div><span>Создан</span><strong>{{ appeal.created_at|dt_compact }}</strong></div></div>
+    {% if appeal.receipt_url %}<a class="ts-button ts-button--secondary" href="{{ appeal.receipt_url }}">Открыть {{ appeal.receipt_name }}</a>{% endif %}
+    {% if appeal.messages %}<div class="ts-message-thread">{% for msg in appeal.messages %}<div><header><strong>{{ msg.author }}</strong><time>{{ msg.created_at|dt_compact }}</time></header><p>{{ msg.message }}</p>{% if msg.has_attachment %}<small>Есть вложение</small>{% endif %}</div>{% endfor %}</div>{% endif %}
+  </article>{% endfor %}{% else %}{{ empty_state('Споров нет', 'Открытые и завершённые апелляции появятся здесь.', 'dispute') }}{% endif %}
+  </div>
+  <aside class="ts-dispute-new"><span class="ts-kicker">Новый спор</span><h2>Выберите операцию</h2><p>Для открытия спора приложите чек.</p>
+    {% if merchant.appeal_candidates %}<div class="ts-candidate-list">{% for op in merchant.appeal_candidates[:12] %}<article><div><strong>{{ op.external_short }}</strong>{{ status_badge(op.status_label,op.status_tone) }}<span>{{ money_value(op.amount,op.currency) }} · {{ op.provider_name }}</span></div><button class="ts-button ts-button--secondary" type="button" data-dialog-open="appeal-create-{{ op.id }}">Открыть спор</button></article>
+    <dialog class="ts-dialog" id="appeal-create-{{ op.id }}"><div class="ts-dialog__header"><h2>Спор по {{ op.external_short }}</h2><button type="button" data-dialog-close>×</button></div><form class="ts-stacked-form" method="post" enctype="multipart/form-data" action="{{ cabinet_base }}/appeals/create" data-submit-once>{{ csrf_input(request) }}<input type="hidden" name="operation_lookup" value="{{ op.id }}"><input type="hidden" name="amount" value="{{ op.amount }}"><input type="hidden" name="requisite" value="{{ op.requisite }}"><input type="hidden" name="recipient_bank" value="{{ op.provider_name }}"><input type="hidden" name="operation_date" value="{{ op.created_at.isoformat() }}"><input type="hidden" name="trader_id" value="{{ op.trader_id }}"><label class="ts-field"><span class="ts-field__label">Чек</span><input class="ts-input" type="file" name="receipt_file" accept=".jpg,.jpeg,.png,.pdf,.webp" required></label><label class="ts-field"><span class="ts-field__label">Комментарий</span><textarea name="message" maxlength="2000"></textarea></label><div class="ts-dialog__actions"><button class="ts-button ts-button--secondary" type="button" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Создать апелляцию</button></div></form></dialog>{% endfor %}</div>{% else %}<p class="ts-note">Нет операций, доступных для нового спора.</p>{% endif %}
+  </aside>
+</section>
+{% endblock %}

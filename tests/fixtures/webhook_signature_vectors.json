@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "vectors": [
+    {
+      "name": "deposit-paid-json",
+      "secret": "fixture-webhook-secret-only",
+      "timestamp": "1770000000",
+      "body_utf8": "{\"event\":\"deposit.paid\",\"payload\":{\"amount\":\"1250.00\",\"id\":\"event-payload-1\"}}",
+      "canonical": "1770000000.{\"event\":\"deposit.paid\",\"payload\":{\"amount\":\"1250.00\",\"id\":\"event-payload-1\"}}",
+      "signature": "62d87873baf157f3d71a87a6da9e10760c1d23c2c6fa4f1b1bdc5d7736191284"
+    }
+  ]
+}

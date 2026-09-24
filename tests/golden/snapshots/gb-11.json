@@ -1,0 +1,41 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "attempt_status_codes": [
+      500,
+      204
+    ],
+    "event": {
+      "same_event_id_across_attempts": true,
+      "source_finance_unchanged": true
+    },
+    "final_status": "delivered",
+    "retry": {
+      "attempt_count": 2,
+      "scheduled_after_500": true
+    },
+    "signature": {
+      "api_key_header_absent": true,
+      "dedicated_webhook_key": true,
+      "valid": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_webhook_hardening_postgres.py::test_claim_race_stale_lease_scanner_enqueue_recovery_and_manual_retry",
+      "tests/test_webhook_hardening_postgres.py::test_delivery_success_uses_dedicated_secret_and_redacted_logs",
+      "tests/test_webhook_hardening_postgres.py::test_retry_policy_terminal_dead_letter_and_configuration_required"
+    ],
+    "recovery_checks": {
+      "webhook": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_webhook_hardening_postgres.py": "0df90955a68342f88c15e6e52593785cfc0c44abb2f08721858cbcd73cb2951b"
+    }
+  },
+  "scenario_id": "GB-11",
+  "schema_version": 1,
+  "title": "Webhook delivery recovery 500 to 204"
+}

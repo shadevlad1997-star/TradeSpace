@@ -1,0 +1,6 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import empty_state %}
+{% block content %}
+<header class="ts-workspace-header"><h1>{{ section.label if section else profile.title }}</h1></header>
+{{ empty_state('Раздел ещё не подключён', 'Вернитесь к доступным разделам через меню.', section.icon if section else 'overview') }}
+{% endblock %}

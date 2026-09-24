@@ -1,0 +1,42 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "authentication": {
+      "unsigned": "rejected",
+      "valid_signature": "accepted",
+      "version": "2"
+    },
+    "events": {
+      "business_terminal_events": 0
+    },
+    "fees": {
+      "snapshot_created": true
+    },
+    "operation": {
+      "assignment_count": 1,
+      "kind": "deposit",
+      "state": "pending"
+    },
+    "trader": {
+      "collateral_hold_created": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_merchant_hmac_v2_postgres.py::test_hmac_v2_normative_vector_and_tamper_detection",
+      "tests/test_merchant_hmac_v2_postgres.py::test_hmac_v2_replay_idempotency_tamper_and_fail_closed"
+    ],
+    "recovery_checks": {
+      "deposit_created": "PASS",
+      "permissions": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_merchant_hmac_v2_postgres.py": "b1176c50957d20285c7f09f4b1e302ab1d3808782ad174d51762c19598ff5441"
+    }
+  },
+  "scenario_id": "GB-01",
+  "schema_version": 1,
+  "title": "Merchant HMAC v2 creates a Deposit"
+}

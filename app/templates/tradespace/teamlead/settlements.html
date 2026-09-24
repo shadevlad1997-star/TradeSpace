@@ -1,0 +1,35 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, attention_panel, empty_state %}
+{% from "tradespace/teamlead/_components.html" import header, balance_band, money %}
+{% block content %}
+{{ header('','Расчёты','') }}
+{{ balance_band(lead) }}
+<div class="ts-settlement-layout"><section class="ts-settlement-request"><span class="ts-kicker">Новый запрос</span><h2>Получить USDT</h2>
+<p>Комиссия {{ lead.settlement_fee }} USDT взимается сверх запрошенной суммы. RUB-эквивалент и комиссия резервируются по актуальному курсу ask Rapira в момент отправки.</p>
+{% for reason in lead.request_blockers %}{{ attention_panel('Запрос сейчас недоступен',reason) }}{% endfor %}
+{% if lead.next_settlement_at %}<p class="ts-note">Пауза после последнего выполненного расчёта заканчивается: <strong>{{ lead.next_settlement_at|dt_compact }} UTC</strong>.</p>{% endif %}
+{% if not lead.request_blockers %}
+<form class="ts-stacked-form" action="{{ cabinet_base }}/teamlead/settlements/request" method="post" data-submit-once>
+{{ csrf_input(request) }}<input type="hidden" name="idempotency_key" value="{{ lead.settlement_key }}">
+<label class="ts-field"><span class="ts-field__label">Получить, USDT</span><input class="ts-input" type="number" name="requested_usdt" min="0.000001" step="0.000001" required></label>
+<label class="ts-field"><span class="ts-field__label">Кошелёк TRC20</span><input class="ts-input" name="wallet_address" minlength="34" maxlength="34" pattern="T[1-9A-HJ-NP-Za-km-z]{33}" required placeholder="T…"></label>
+<button type="button" class="ts-button ts-button--primary" data-dialog-open="teamlead-settlement-confirm">Проверить и продолжить</button>
+<dialog class="ts-dialog" id="teamlead-settlement-confirm" data-component="ActionDialog"><div class="ts-dialog__header"><h2>Подтвердите запрос расчёта</h2><button class="ts-icon-button" type="button" data-dialog-close aria-label="Закрыть">×</button></div>
+<dl class="ts-definition-list"><div><dt>Получить</dt><dd data-review-amount></dd></div><div><dt>Кошелёк TRC20</dt><dd data-review-wallet></dd></div></dl><p>Проверьте сумму и адрес кошелька перед отправкой. К сумме будет добавлена комиссия {{ lead.settlement_fee }} USDT. Сервер получит свежий курс, проверит 2FA, доступные средства, долг и ограничения; затем зарезервирует RUB.</p>
+<p class="ts-note">Это запрос на обработку, а не подтверждение отправки средств. Итоговый курс и RUB-резерв появятся в истории.</p>
+<div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Назад</button><button class="ts-button ts-button--primary" type="submit">Создать запрос</button></div></dialog>
+</form>{% endif %}</section>
+<aside class="ts-settlement-rules"><span class="ts-kicker">Условия обработки</span><h2>Ваши средства</h2><ul><li>Непогашенный долг блокирует новый запрос.</li><li>Одновременно может существовать один запрос на рассмотрении.</li><li>После выполнения действует пауза {{ lead.cooldown_hours }} часов.</li><li>При отклонении резерв возвращается в доступные средства.</li><li>Выполнение и отклонение доступны суперадминистратору.</li></ul><dl class="ts-definition-list"><div><dt>Выплачено без комиссии</dt><dd>{{ money(lead.balance.total_paid_rub if lead.balance else none) }}</dd></div></dl></aside></div>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">История</span><h2>Запросы расчёта</h2></div><span>Последние {{ lead.settlements|length }}</span></div>
+{% if lead.settlements %}<div class="ts-tl-settlements">{% for row in lead.settlements %}<details class="ts-tl-settlement"><summary>
+<div>{{ status_badge(row.status_label,row.tone) }}<strong>{{ row.short_id }}</strong><small>{{ row.requested_at|dt_compact }}</small></div>
+<div><span>К получению</span>{{ money(row.requested_usdt,'USDT') }}<small>+ {{ row.fee_usdt }} USDT комиссия</small></div><div><span>Сумма с комиссией</span>{{ money(row.total_debit_rub) }}<small>Детали ↓</small></div>
+</summary><div class="ts-tl-record__detail"><dl class="ts-definition-list">
+{% for label,value in [('ID запроса',row.id),('Сеть',row.network),('Кошелёк',row.wallet),('TX hash',row.tx_hash),('Причина отклонения',row.reject_reason)] %}{% if value %}<div><dt>{{ label }}</dt><dd><code>{{ value }}</code></dd></div>{% endif %}{% endfor %}
+<div><dt>Сумма выплаты в RUB</dt><dd>{{ money(row.requested_rub) }}</dd></div><div><dt>Комиссия в RUB</dt><dd>{{ money(row.fee_rub) }}</dd></div>
+<div><dt>Зафиксированный курс</dt><dd>{{ row.rate }} · {{ row.rate_symbol }} {{ row.rate_side }}</dd></div><div><dt>Источник курса</dt><dd>{{ row.rate_source }} · {{ row.freshness_basis }}</dd></div><div><dt>Курс получен</dt><dd>{{ row.fetched_at|dt_compact }} UTC</dd></div>
+{% if row.provider_timestamp %}<div><dt>Время провайдера</dt><dd>{{ row.provider_timestamp|dt_compact }} UTC</dd></div>{% endif %}
+{% if row.completed_at %}<div><dt>Выполнен</dt><dd>{{ row.completed_at|dt_compact }} UTC</dd></div>{% endif %}{% if row.rejected_at %}<div><dt>Отклонён</dt><dd>{{ row.rejected_at|dt_compact }} UTC</dd></div>{% endif %}
+</dl></div></details>{% endfor %}</div>{% else %}{{ empty_state('Запросов ещё нет','История появится после первого запроса. Автоматические выплаты не запланированы.','settlement') }}{% endif %}</section>
+<script defer src="/static/tradespace/js/teamlead.js?v=1"></script>
+{% endblock %}

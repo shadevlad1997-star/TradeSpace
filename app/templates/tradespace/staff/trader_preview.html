@@ -1,0 +1,15 @@
+{% extends 'tradespace/layouts/app.html' %}
+{% from 'tradespace/components/ui.html' import money_value,status_badge %}
+{% block content %}
+<section data-component="TraderScopePreview" data-session-view="{{ session_view }}">
+<header class="ts-workspace-header"><div><h1>Просмотр трейдера</h1><p>{{ subject.email }} · Только просмотр. Действия доступны в карточке операции.</p></div></header>
+<nav class="ts-filter-bar" aria-label="Выбор операций">
+<a href="{{ cabinet_base }}/trader?view=active">Активные {{ preview.aggregates.active_count }}</a>
+<a href="{{ cabinet_base }}/trader?view=history">История {{ preview.aggregates.history_count }}</a>
+</nav>
+<form class="ts-filter-bar" method="get" action="{{ cabinet_base }}/trader"><input type="hidden" name="view" value="{{ filters.view }}"><label>Поиск<input name="deposit_query" value="{{ filters.query }}"></label><button class="ts-button" type="submit">Найти</button></form>
+<div class="ts-operation-list">{% for row in preview.deposits %}
+<article class="ts-panel"><p><code>{{ row.external_id }}</code></p><h2>{{ money_value(row.amount,row.currency) }}</h2><p>{{ status_badge(row.status|deposit_status_label,'neutral') }}</p><a href="{{ cabinet_base }}/tradespace/operations/{{ row.id }}">Подробнее</a></article>
+{% else %}<p>Операций не найдено.</p>{% endfor %}</div>
+</section>
+{% endblock %}

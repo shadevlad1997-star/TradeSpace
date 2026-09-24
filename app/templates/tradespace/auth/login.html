@@ -1,0 +1,36 @@
+{% from "tradespace/components/ui.html" import icon, form_field %}
+<!doctype html>
+<html lang="ru">
+<head>
+{% include "tradespace/components/head_icons.html" %}
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow">
+  <title>Вход · TradeSpace</title>
+  <link rel="stylesheet" href="/static/tradespace/css/tokens.css?v=3"><link rel="stylesheet" href="/static/tradespace/css/app.css?v=8">
+</head>
+<body class="ts-auth">
+  <main class="ts-auth-layout">
+    <section class="ts-auth-context" aria-label="TradeSpace">
+      <a class="ts-brand ts-brand--auth" href="/"><span class="ts-brand__mark"><span>T</span><span>S</span></span><span class="ts-brand__word">TradeSpace</span></a>
+      <div class="ts-auth-context__copy"><h1>Платежи под контролем</h1></div>
+
+    </section>
+    <section class="ts-auth-panel">
+      <div class="ts-auth-card">
+        <p class="ts-eyebrow">{% if expected_realm == 'staff' %}Сотрудникам{% elif expected_realm == 'merchant' %}Мерчантам{% elif expected_realm == 'trader' %}Трейдерам{% elif expected_realm == 'aggregator' %}Агрегаторам{% else %}Вход{% endif %}</p>
+        <h2>Вход в TradeSpace</h2><p class="ts-auth-card__intro">Используйте выданные данные. 2FA-код нужен, если защита подключена для учётной записи.</p>
+        {% if error %}<div class="ts-feedback ts-feedback--validation" role="alert"><span>{{ icon('shield',18) }}</span><p>{{ error }}</p></div>{% endif %}
+        <form method="post" action="{{ login_action }}" class="ts-form-stack">{{ csrf_input(request) }}
+          {{ form_field('Email', 'email', 'email', 'username', True) }}
+          {{ form_field('Пароль', 'password', 'password', 'current-password', True) }}
+          {{ form_field('2FA-код', 'otp', 'text', 'one-time-code', False, 'Оставьте пустым, если 2FA не подключена.', 'numeric') }}
+          <button class="ts-button ts-button--primary ts-button--wide" type="submit">Войти в кабинет</button>
+        </form>
+        <p class="ts-auth-card__footnote">Доступ выдаёт администратор платформы. На странице входа нельзя создать аккаунт или восстановить секрет.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+
+

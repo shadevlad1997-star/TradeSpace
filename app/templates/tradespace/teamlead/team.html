@@ -1,0 +1,20 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, empty_state %}
+{% from "tradespace/teamlead/_components.html" import header, accrual_records %}
+{% block content %}
+{{ header('Сеть назначений','Команда','Трейдеры и мерчанты, назначенные вам сейчас или ранее.') }}
+<form class="ts-filter-bar" method="get"><label><span>Поиск участника</span><input name="q" value="{{ lead.filters.q }}" placeholder="Email, название или ID"></label>
+<label><span>Тип</span><select name="kind"><option value="">Все участники</option><option value="trader"{% if lead.filters.kind == 'trader' %} selected{% endif %}>Трейдеры</option><option value="merchant"{% if lead.filters.kind == 'merchant' %} selected{% endif %}>Мерчанты</option></select></label>
+<label><span>Назначение</span><select name="status"><option value="">Вся история</option><option value="active"{% if lead.filters.status == 'active' %} selected{% endif %}>Незакрытое</option><option value="closed"{% if lead.filters.status == 'closed' %} selected{% endif %}>Закрытое</option></select></label>
+<button class="ts-button ts-button--primary">Применить</button><a href="{{ cabinet_base }}/tradespace/team">Сбросить</a></form>
+{% if lead.selected_member %}{% set member = lead.selected_member %}
+<section class="ts-section-block ts-tl-member-detail"><div class="ts-panel-heading"><div><span class="ts-kicker">{{ member.kind_label }}</span><h2>{{ member.label }}</h2><code>{{ member.id }}</code></div><a href="{{ cabinet_base }}/tradespace/team">Закрыть детали</a></div>
+<h3>История назначений</h3><div class="ts-tl-intervals">{% for h in member.history %}<article><strong>{{ h.percent }}%</strong><span>С {{ h.from|dt_compact }} UTC</span><span>{% if h.to %}До {{ h.to|dt_compact }} UTC{% else %}Не закрыто{% endif %}</span></article>{% endfor %}</div>
+<h3>Ваши начисления по участнику</h3>{{ accrual_records(member.records) }}</section>{% endif %}
+{% if lead.members %}<div class="ts-tl-members">{% for member in lead.members %}<article class="ts-tl-member">
+<div class="ts-panel-heading"><span class="ts-kicker">{{ member.kind_label }}</span>{{ status_badge('Назначение не закрыто' if member.active else 'Назначение закрыто','positive' if member.active else 'neutral') }}</div>
+<h2><a href="{{ member.url }}">{{ member.label }}</a></h2><code>{{ member.id }}</code>
+<dl class="ts-definition-list">{% if member.account_status %}<div><dt>Учётная запись</dt><dd>{{ member.account_status }}</dd></div>{% endif %}<div><dt>Записей начислений в выборке</dt><dd>{{ member.record_count }}</dd></div><div><dt>Последний процент назначения</dt><dd>{{ member.history[0].percent }}%</dd></div></dl>
+<a class="ts-button ts-button--secondary" href="{{ member.url }}">История и начисления →</a>
+</article>{% endfor %}</div>{% else %}{{ empty_state('Участники не найдены','Проверьте фильтры. Назначения создаёт суперадминистратор.','team') }}{% endif %}
+{% endblock %}

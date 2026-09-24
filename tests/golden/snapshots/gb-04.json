@@ -1,0 +1,37 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "commission": {
+      "executor_fee_rub": "350.00",
+      "immutable_snapshot": true,
+      "merchant_fee_rub": "750.00",
+      "platform_margin_rub": "400.00"
+    },
+    "idempotent_financial_settlement": true,
+    "operation": {
+      "state": "paid"
+    },
+    "recovery_fixture": {
+      "gross_rub": "5000.00",
+      "merchant_balance_after_rub": "4250.00",
+      "trader_balance_after_rub": "95350.00",
+      "trader_hold_after_rub": "0.00"
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_teamlead_postgres.py::test_postgres_paid_accrues_once_from_gross_without_changing_trader_merchant_or_rolling"
+    ],
+    "recovery_checks": {
+      "deposit_paid": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_teamlead_postgres.py": "2367e5d38b3e22af66641501d337ec0e979f77cd6a42b443a9822583844c3bee"
+    }
+  },
+  "scenario_id": "GB-04",
+  "schema_version": 1,
+  "title": "Trader confirms ordinary Deposit"
+}

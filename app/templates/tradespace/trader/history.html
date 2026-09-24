@@ -1,0 +1,25 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/trader/_components.html" import page_header, operation_table %}
+{% from "tradespace/components/ui.html" import money_value %}
+{% block content %}
+{{ page_header('', 'История', '', 'Найдено: ' ~ trader.recent_operations|length, 'neutral') }}
+<dl class="ts-fact-grid" aria-label="Сводка операций">
+<div><dt>Активные</dt><dd data-metric="active_count">{{ trader.aggregates.active_count }}</dd></div>
+<div><dt>Истекают до 5 минут</dt><dd data-metric="urgent_count">{{ trader.aggregates.urgent_count }}</dd></div>
+<div><dt>Оплачено сегодня, UTC</dt><dd data-metric="paid_today_count">{{ trader.aggregates.paid_today_count }}</dd></div>
+<div><dt>Объём сегодня</dt><dd data-metric="paid_today_amount">{{ money_value(trader.aggregates.paid_today_amount,'RUB') }}</dd></div>
+</dl>
+<form class="ts-filter-bar" method="get" action="{{ cabinet_base }}/tradespace/history" data-component="FilterBar">
+  <label><span>Поиск</span><input name="deposit_query" value="{{ trader.filters.get('query','') }}" placeholder="ID операции или external ID"></label>
+  <label><span>Статус</span><select name="status"><option value="">Все результаты</option>{% for value,label in [('paid','Оплачена'),('failed','Не оплачена'),('expired','Срок истёк'),('cancelled','Отменена')] %}<option value="{{ value }}" {% if trader.filters.get('status') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label><span>Способ</span><select name="payment_method"><option value="">Все способы</option>{% for method in trader.payment_methods %}<option value="{{ method.value }}" {% if trader.filters.get('payment_method') == method.value %}selected{% endif %}>{{ method.label }}</option>{% endfor %}</select></label>
+  <label><span>Дата, UTC</span><input type="date" name="deposit_date" value="{{ trader.filters.get('date','') }}"></label>
+  <label><span>Банк</span><select name="bank_code"><option value="">Все банки</option>{% for bank in trader.banks %}<option value="{{ bank.code }}"{% if trader.filters.get('bank_code') == bank.code %} selected{% endif %}>{{ bank.label }}</option>{% endfor %}</select></label>
+  <button class="ts-button ts-button--primary" type="submit">Применить</button>
+  {% if trader.filters.get('query') or trader.filters.get('status') or trader.filters.get('payment_method') or trader.filters.get('date') %}<a class="ts-button ts-button--quiet" href="{{ cabinet_base }}/tradespace/history">Сбросить</a>{% endif %}
+</form>
+<section class="ts-section-block">
+  {{ operation_table(trader.recent_operations, 'Нет результатов', 'Измените фильтры или дождитесь завершения операций.') }}
+</section>
+{% endblock %}
+

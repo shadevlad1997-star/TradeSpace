@@ -1,0 +1,85 @@
+{% from "tradespace/components/ui.html" import icon, feedback_message %}
+<!doctype html>
+<html lang="ru">
+<head>
+{% include "tradespace/components/head_icons.html" %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#17233a">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}{{ page_title|default(profile.title) }}{% endblock %} · TradeSpace</title>
+  <link rel="stylesheet" href="/static/tradespace/css/tokens.css?v=6">
+  <link rel="stylesheet" href="/static/tradespace/css/app.css?v=8">
+  <script defer src="/static/tradespace/js/shell.js?v=8"></script>
+  {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="/static/tradespace/css/polish.css?v=8">
+</head>
+<body class="ts-app" data-realm="{{ realm }}" data-role="{{ role }}">
+  <a class="ts-skip-link" href="#workspace">К содержимому</a>
+  <header class="ts-product-bar" data-component="ProductBar">
+    <a class="ts-brand" href="{{ cabinet_base }}" aria-label="TradeSpace — главная">
+      <span class="ts-brand__mark" aria-hidden="true"><span>T</span><span>S</span></span>
+      <span class="ts-brand__word">TradeSpace</span>
+    </a>
+    <div class="ts-product-bar__context">
+      <span class="ts-realm-indicator">{{ profile.eyebrow }}</span>
+    </div>
+    <div class="ts-product-bar__actions">
+      <a class="ts-icon-button ts-notification-link" href="{{ cabinet_base }}/tradespace/notifications" aria-label="Уведомления" title="Уведомления">{{ icon('bell', 19) }}</a>
+      <details class="ts-account" data-component="AccountMenu">
+        <summary><span class="ts-account__avatar">{{ user.email[:1]|upper }}</span><span class="ts-account__identity"><strong>{{ user.email }}</strong><small>{% if role in ['operator','trader'] %}Трейдер{% elif role == 'merchant' %}Мерчант{% elif role == 'teamlead' %}TeamLead{% elif role == 'support' %}Поддержка{% elif role == 'admin' %}Администратор{% elif role == 'superadmin' %}Суперадминистратор{% elif role == 'aggregator' %}Агрегатор{% else %}{{ role }}{% endif %}</small></span><span class="ts-account__chevron" aria-hidden="true">{{ icon("chevron-down", 16) }}</span></summary>
+        <div class="ts-account__menu">
+          <a href="{{ security_url }}">{{ icon('shield', 17) }} Безопасность</a>
+          <form method="post" action="{{ logout_url }}">{{ csrf_input(request) }}<button type="submit">Выйти</button></form>
+        </div>
+      </details>
+    </div>
+  </header>
+
+
+  {% set mobile_secondary_active = active_section in mobile_overflow|map(attribute="slug")|list %}
+  {% set secondary_active = active_section in navigation|rejectattr("primary")|map(attribute="slug")|list %}
+  <nav class="ts-realm-nav" aria-label="Основная навигация" data-component="RealmNavigation">
+    <div class="ts-realm-nav__inner">
+      {% for item in navigation if item.primary %}
+      {% set href = cabinet_base if item.slug == profile.landing else cabinet_base ~ '/tradespace/' ~ item.slug %}
+      <a href="{{ href }}" class="{% if active_section == item.slug %}is-active{% endif %}"{% if active_section == item.slug %} aria-current="page"{% endif %}>{{ icon(item.icon, 17) }}<span>{{ item.label }}</span></a>
+      {% endfor %}
+      <details class="ts-more-menu">
+        <summary{% if secondary_active %} class="is-active"{% endif %}><span>Ещё</span>{{ icon("chevron-down", 16) }}</summary>
+        <div>{% for item in navigation if not item.primary %}<a href="{{ cabinet_base }}/tradespace/{{ item.slug }}" class="{% if active_section == item.slug %}is-active{% endif %}"{% if active_section == item.slug %} aria-current="page"{% endif %}>{{ icon(item.icon, 17) }}{{ item.label }}</a>{% endfor %}</div>
+      </details>
+    </div>
+  </nav>
+
+  {% block context_subnav %}{% endblock %}
+
+  <main id="workspace" class="ts-canvas" tabindex="-1">
+    <div class="ts-context-trail" data-component="ContextTrail" aria-label="Контекст страницы">
+      <span>{{ profile.eyebrow }}</span><span aria-hidden="true">/</span><strong>{{ page_title|default(profile.title) }}</strong>
+    </div>
+    {{ feedback_message(ui_message) }}
+    {% block content %}{% endblock %}
+  </main>
+
+  <nav class="ts-mobile-nav" aria-label="Мобильная навигация" data-component="MobileNavigation">
+    {% for item in mobile_navigation %}
+    {% set href = cabinet_base if item.slug == profile.landing else cabinet_base ~ '/tradespace/' ~ item.slug %}
+    <a href="{{ href }}" class="{% if active_section == item.slug %}is-active{% endif %}"{% if active_section == item.slug %} aria-current="page"{% endif %}>{{ icon(item.icon, 19) }}<span>{{ item.short_label }}</span></a>
+    {% endfor %}
+    <button type="button"{% if mobile_secondary_active %} class="is-active"{% endif %} data-mobile-more aria-expanded="false" aria-controls="mobile-more-sheet">{{ icon('settings', 19) }}<span>Ещё</span></button>
+  </nav>
+  <div class="ts-mobile-sheet" id="mobile-more-sheet" role="dialog" aria-modal="true" aria-labelledby="ts-mobile-more-title" hidden>
+    <button class="ts-mobile-sheet__backdrop" type="button" data-mobile-more-close aria-label="Закрыть меню"></button>
+    <section aria-label="Дополнительная навигация">
+      <header><strong id="ts-mobile-more-title">Ещё</strong><button type="button" data-mobile-more-close aria-label="Закрыть">×</button></header>
+      {% for item in mobile_overflow %}<a href="{{ cabinet_base }}/tradespace/{{ item.slug }}"{% if active_section == item.slug %} aria-current="page"{% endif %}>{{ icon(item.icon, 19) }}<span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span></a>{% endfor %}
+      <form method="post" action="{{ logout_url }}">{{ csrf_input(request) }}<button type="submit">Выйти из кабинета</button></form>
+    </section>
+  </div>
+</body>
+</html>
+
+
+

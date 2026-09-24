@@ -1,0 +1,33 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "F09 HTTP browser-route finance/CSRF/roles are verified; actual browser interaction remains blocked by the browser tool.",
+  "business_result": {
+    "captured": {
+      "authorized_csrf_http_post": true,
+      "fixture_available_after": "1000.00",
+      "fixture_frozen_after": "0.00",
+      "frozen_release_once": true,
+      "missing_csrf_denied": true,
+      "repeated_service_rejection_idempotent": true,
+      "service_state": "rejected",
+      "wrong_roles_denied": true
+    },
+    "not_captured": {
+      "real_browser_rejection_interaction": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_remediation_finance_postgres.py::test_settlement_reject_real_browser_post_csrf_roles_repeat_and_reconcile",
+      "tests/test_settlement_hardening_postgres.py::test_completion_rejection_idempotency_and_tx_hash_uniqueness"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_remediation_finance_postgres.py": "5b506e49fa20c2c460437dba11a2b727a05ee0a8e43aebe7c834a778a27309cc",
+      "tests/test_settlement_hardening_postgres.py": "3cf33edce420dcd32e5ed77bb35925d2908755532a33d34ec809d0e8c9d9e89b"
+    }
+  },
+  "scenario_id": "GB-13",
+  "schema_version": 1,
+  "title": "Merchant settlement rejection control"
+}

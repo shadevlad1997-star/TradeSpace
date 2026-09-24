@@ -1,0 +1,30 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/merchant/_components.html" import page_header, operation_table, paginator %}
+{% block content %}
+{{ page_header('', 'Операции', '', merchant.total_filtered ~ ' найдено', 'neutral') }}
+<form class="ts-filter-bar" method="get" action="{{ cabinet_base }}/tradespace/operations" data-component="FilterBar">
+  <label><span>Поиск</span><input name="query" value="{{ merchant.filters.query }}" placeholder="External ID, UUID или реквизит"></label>
+  <label><span>Статус</span><select name="status"><option value="">Все</option>{% for value, label in [('created','Создана'),('pending','Ожидает оплаты'),('paid','Оплачена'),('failed','Не оплачена'),('expired','Срок истёк'),('cancelled','Отменена'),('appeal_opened','Открыт спор')] %}<option value="{{ value }}"{% if merchant.filters.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label><span>Способ</span><select name="payment_method"><option value="">Все</option>{% for item in merchant.payment_methods %}<option value="{{ item.value }}"{% if merchant.filters.payment_method == item.value %} selected{% endif %}>{{ item.label }}</option>{% endfor %}</select></label>
+  <label><span>Дата</span><input type="date" name="date" value="{{ merchant.filters.date }}"></label>
+  <button class="ts-button ts-button--primary" type="submit">Применить</button>
+  {% if merchant.filters.query or merchant.filters.status or merchant.filters.payment_method or merchant.filters.date %}<a class="ts-button ts-button--quiet" href="{{ cabinet_base }}/tradespace/operations">Сбросить</a>{% endif %}
+</form>
+<section class="ts-section-block">
+  <div class="ts-panel-heading"><div><span class="ts-kicker">Пополнения</span><h2>Поток операций</h2></div><span class="ts-count">{{ merchant.total_filtered }}</span></div>
+  {{ operation_table(merchant.operations) }}
+  {{ paginator(merchant, cabinet_base ~ '/tradespace/operations') }}
+</section>
+<section class="ts-section-block">
+  <div class="ts-panel-heading"><div><span class="ts-kicker">Выплаты</span><h2>Выплаты</h2></div><span class="ts-count">{{ merchant.payouts|length }}</span></div>
+  {% if merchant.payouts %}
+  <div class="ts-data-table-wrap ts-data-table-wrap--has-cards"><table class="ts-data-table"><thead><tr><th>Внешний ID</th><th>Статус</th><th>Сумма</th><th>Способ</th><th>Создана</th></tr></thead><tbody>{% for row in merchant.payouts %}<tr><td><strong title="{{ row.external_id }}">{{ row.external_short }}</strong><small><code>{{ row.short_id }}</code></small></td><td>{{ status_badge(row.status_label,row.status_tone) }}</td><td>{{ money_value(row.amount,row.currency) }}</td><td>{{ row.method_label }}</td><td>{{ row.created_at|dt_compact }}</td></tr>{% endfor %}</tbody></table></div>
+  <div class="ts-mobile-cards">{% for row in merchant.payouts %}<article class="ts-mobile-operation" aria-label="Выплата {{ row.external_short }}">
+    <span>{{ status_badge(row.status_label,row.status_tone) }}<time>{{ row.created_at|dt_compact }}</time></span>
+    <strong>{{ money_value(row.amount,row.currency) }}</strong>
+    <p>{{ row.method_label }}</p><code title="{{ row.external_id }}">{{ row.external_short }} · {{ row.short_id }}</code>
+  </article>{% endfor %}</div>
+  {% else %}{{ empty_state('Выплат нет', 'Payout операции, созданные через действующий API, появятся здесь.', 'settlement') }}{% endif %}
+</section>
+{% endblock %}

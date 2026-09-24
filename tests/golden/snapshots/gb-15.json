@@ -1,0 +1,31 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "The HMAC suite proves Payout creation/idempotency, but the recovered tests do not snapshot the complete terminal balance matrix. External execution does not exist.",
+  "business_result": {
+    "captured": {
+      "changed_payload_conflict": true,
+      "concurrent_duplicate_protection": true,
+      "create_idempotency": true,
+      "payout_create": true
+    },
+    "not_captured": {
+      "admin_complete_debit": true,
+      "admin_fail_release": true,
+      "admin_reject_release": true,
+      "cancel_balance_release": true,
+      "external_execution": "not implemented"
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_merchant_hmac_v2_postgres.py::test_hmac_v2_replay_idempotency_tamper_and_fail_closed"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_merchant_hmac_v2_postgres.py": "b1176c50957d20285c7f09f4b1e302ab1d3808782ad174d51762c19598ff5441"
+    }
+  },
+  "scenario_id": "GB-15",
+  "schema_version": 1,
+  "title": "Payout accounting lifecycle"
+}

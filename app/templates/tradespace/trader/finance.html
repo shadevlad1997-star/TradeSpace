@@ -1,0 +1,25 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/trader/_components.html" import page_header, money_strip %}
+{% block content %}
+{{ page_header('', 'Финансы', '', 'Сверка совпадает' if trader.finance_reconciled else 'Нужна проверка', 'positive' if trader.finance_reconciled else 'critical') }}
+{{ money_strip(trader) }}
+{% include 'tradespace/components/platform_wallet.html' %}
+<section class="ts-section-block">
+  <div class="ts-panel-heading"><div><span class="ts-kicker">История</span><h2>История движений</h2></div><span class="ts-count">{{ trader.ledger|length }}</span></div>
+  {% if trader.ledger %}
+  <div class="ts-data-table-wrap ts-data-table-wrap--has-cards"><table class="ts-data-table">
+    <thead><tr><th>Дата</th><th>Событие</th><th>Сумма</th><th>Баланс после</th><th>Резерв после</th><th>Операция</th></tr></thead>
+    <tbody>{% for row in trader.ledger %}<tr>
+      <td><time>{{ row.created_at|dt_compact }}</time></td>
+      <td><strong>{{ row.entry_label }}</strong>{% if row.description %}<small>{{ row.description }}</small>{% endif %}</td>
+      <td>{{ money_value(row.amount, 'RUB') }}</td>
+      <td>{{ money_value(row.balance_after, 'RUB') }}</td>
+      <td>{{ money_value(row.hold_after, 'RUB') }}</td>
+      <td>{% if row.operation_id %}<a class="ts-id-link" href="{{ cabinet_base }}/tradespace/operations/{{ row.operation_id }}"><code>{{ row.operation_short }}</code></a>{% elif row.reference_label %}{{ row.reference_label }} <code>{{ row.operation_short }}</code>{% else %}—{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="ts-mobile-cards">{% for row in trader.ledger %}<article class="ts-mobile-ledger"><span><strong>{{ row.entry_label }}</strong><time>{{ row.created_at|dt_compact }}</time></span>{{ money_value(row.amount, 'RUB') }}<p>После: {{ row.balance_after }} RUB · резерв {{ row.hold_after }} RUB</p>{% if row.operation_id %}<a href="{{ cabinet_base }}/tradespace/operations/{{ row.operation_id }}">Операция {{ row.operation_short }}</a>{% elif row.reference_label %}<span>{{ row.reference_label }} {{ row.operation_short }}</span>{% endif %}{% if row.description %}<p>{{ row.description }}</p>{% endif %}</article>{% endfor %}</div>
+  {% else %}{{ empty_state('Финансовых движений нет', 'История заполнится при резервировании, освобождении или списании средств.', 'wallet') }}{% endif %}
+</section>
+{% endblock %}

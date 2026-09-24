@@ -1,0 +1,34 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value, empty_state %}
+{% from "tradespace/merchant/_components.html" import page_header %}
+{% block content %}
+{{ page_header('', 'Расчёты', '', 'На рассмотрении: ' ~ merchant.pending_settlement_count, 'attention' if merchant.pending_settlement_count else 'neutral') }}
+<div class="ts-settlement-layout">
+  <section class="ts-settlement-request">
+    <div><span class="ts-kicker">Новый запрос</span><h2>Расчёт в USDT</h2><p>После создания RUB эквивалент и комиссия переходят из доступного баланса в резерв.</p></div>
+    <div class="ts-quote-panel{% if not merchant.settlement_quote.rate_available %} is-unavailable{% endif %}">
+      <dl><div><dt>Доступно</dt><dd>{{ money_value(merchant.settlement_quote.available_rub,'RUB') }}</dd></div><div><dt>Курс покупки</dt><dd>{% if merchant.settlement_quote.rate_available %}{{ merchant.settlement_quote.rate_rub }} RUB{% else %}Недоступен{% endif %}</dd></div><div><dt>Комиссия сети</dt><dd>{{ merchant.settlement_quote.fee_usdt }} USDT</dd></div><div><dt>Максимум</dt><dd>{{ merchant.settlement_quote.max_request_usdt }} USDT</dd></div></dl>
+    </div>
+    {% if merchant.pending_settlement_count %}<p class="ts-inline-warning">Предыдущий запрос ещё рассматривается. Дождитесь решения.</p>{% endif %}
+    {% if merchant.settlement_quote.rate_available %}
+    <form class="ts-stacked-form" method="post" action="{{ cabinet_base }}/settlements/request" data-submit-once>
+      {{ csrf_input(request) }}<input type="hidden" name="idempotency_key" value="{{ merchant.settlement_idempotency_key }}">
+      <label class="ts-field"><span class="ts-field__label">Сумма, USDT</span><input class="ts-input" type="number" name="amount_usdt" min="0.01" step="0.01" max="{{ merchant.settlement_quote.max_request_usdt }}" required></label>
+      <label class="ts-field"><span class="ts-field__label">Адрес TRC20</span><input class="ts-input" name="trc20_address" autocomplete="off" required maxlength="128" placeholder="T…"></label>
+      <button class="ts-button ts-button--primary" type="button" data-dialog-open="settlement-confirm">Проверить и продолжить</button>
+      <dialog class="ts-dialog" id="settlement-confirm"><div class="ts-dialog__header"><h2>Создать запрос расчёта</h2><button type="button" data-dialog-close>×</button></div><p>Проверьте адрес и сумму. При отправке курс и доступный баланс будут проверены повторно.</p><div class="ts-dialog__actions"><button class="ts-button ts-button--secondary" type="button" data-dialog-close>Назад</button><button class="ts-button ts-button--primary" type="submit">Создать запрос</button></div></dialog>
+    </form>
+    {% else %}<div class="ts-empty-inline"><strong>Текущий курс временно недоступен</strong><p>Создание запроса отключено. Доступный баланс и история остаются видимыми.</p></div>{% endif %}
+  </section>
+  <aside class="ts-settlement-rules"><span class="ts-kicker">Правила</span><h2>Что фиксируется</h2><ul><li>Курс и его источник</li><li>Комиссия сети в USDT и RUB</li><li>Полное списание из доступного баланса</li><li>Адрес получения USDT в сети TRC20</li></ul></aside>
+</div>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">История</span><h2>Запросы расчёта</h2></div><span class="ts-count">{{ merchant.settlements|length }}</span></div>
+{% if merchant.settlements %}<div class="ts-data-table-wrap ts-data-table-wrap--has-cards"><table class="ts-data-table"><thead><tr><th>Запрос</th><th>Статус</th><th>USDT с комиссией</th><th>Списание RUB</th><th>Курс</th><th>Назначение</th><th>Дата</th></tr></thead><tbody>{% for row in merchant.settlements %}<tr><td><code title="{{ row.id }}">{{ row.short_id }}</code></td><td>{{ status_badge(row.status_label,row.status_tone) }}{% if row.reject_reason %}<small>{{ row.reject_reason }}</small>{% endif %}</td><td><strong>{{ row.amount_usdt }} + {{ row.fee_usdt }}</strong><small>USDT</small></td><td>{{ money_value(row.total_debit_rub,'RUB') }}</td><td>{{ row.rate_rub }}</td><td><code title="{{ row.address }}">{{ row.address_short }}</code><small>{{ row.network }}{% if row.tx_hash %} · TX {{ row.tx_short }}{% endif %}</small></td><td>{{ row.created_at|dt_compact }}</td></tr>{% endfor %}</tbody></table></div><div class="ts-mobile-cards">{% for row in merchant.settlements %}<article class="ts-mobile-operation" aria-label="Расчёт {{ row.short_id }}">
+  <span>{{ status_badge(row.status_label,row.status_tone) }}<time>{{ row.created_at|dt_compact }}</time></span>
+  <strong>{{ money_value(row.total_debit_rub,'RUB') }}</strong>
+  <p>{{ row.amount_usdt }} + {{ row.fee_usdt }} USDT · курс {{ row.rate_rub }}</p>
+  <code title="{{ row.id }}">{{ row.short_id }} · {{ row.network }}</code>
+  <p>Адрес: <code title="{{ row.address }}">{{ row.address_short }}</code>{% if row.tx_hash %} · TX {{ row.tx_short }}{% endif %}</p>
+  {% if row.reject_reason %}<p>{{ row.reject_reason }}</p>{% endif %}
+</article>{% endfor %}</div>{% else %}{{ empty_state('Settlement requests нет', 'Здесь появится история ручных запросов на расчёт.', 'settlement') }}{% endif %}</section>
+{% endblock %}

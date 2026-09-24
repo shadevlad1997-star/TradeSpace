@@ -1,0 +1,31 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "TTL predicate and fail-closed worker behavior are automated; a normal held Deposit expiration with full ledger/event snapshot is not isolated by the recovered suite.",
+  "business_result": {
+    "captured": {
+      "deadline_source": "immutable_expires_at",
+      "missing_hold_worker_behavior": "fail_closed"
+    },
+    "expected_current_terminal": {
+      "failure_reason": "trader_timeout",
+      "state": "failed"
+    },
+    "not_captured": {
+      "normal_pending_full_accounting_expiration_end_to_end": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_legacy_pending_repair_postgres.py::test_new_deposit_with_missing_hold_remains_worker_fail_closed",
+      "tests/test_rolling_unit.py::test_ttl_uses_immutable_expires_at"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_legacy_pending_repair_postgres.py": "cbcf83dc71a3ebb7ba75799463b7fa8fc78447b9f677b7f75cc62ae78f9a69af",
+      "tests/test_rolling_unit.py": "3e8c0ce60ef00d29cbf9c3e6bc80368b36d77ac34f451eca0ef61c8493938d52"
+    }
+  },
+  "scenario_id": "GB-07",
+  "schema_version": 1,
+  "title": "TTL expiration"
+}

@@ -1,0 +1,36 @@
+{
+  "automation": "PARTIALLY AUTOMATED",
+  "automation_gap": "Authorized HTTP and specialized service finance are verified; combined referral/Rolling appeal attribution and real-browser interaction are outside this fixture.",
+  "business_result": {
+    "captured": {
+      "appeal_status": "approved",
+      "deposit_status": "paid",
+      "event_type": "deposit.paid",
+      "invalid_hold_rolls_back": true,
+      "merchant_available": "1900.00",
+      "one_financial_outcome": true,
+      "payload_status": "paid",
+      "trader_balance": "99050.00",
+      "trader_hold": "0.00"
+    },
+    "not_captured": [
+      "combined TeamLead and Rolling appeal fixture",
+      "real-browser interaction"
+    ]
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_acceptance_financial_postgres.py::test_acceptance_specialized_appeal_outcome_and_duplicate_resolution[approve]",
+      "tests/test_acceptance_known_gaps.py::test_generic_appeal_http_finance_duplicate_and_concurrency[approved]",
+      "tests/test_acceptance_known_gaps.py::test_generic_appeal_http_rolls_back_invalid_hold_and_enforces_roles"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_acceptance_financial_postgres.py": "fc58421607d5567b99dccca3289f830e5d7479663d6257634c67ab36fbf0044b",
+      "tests/test_acceptance_known_gaps.py": "8437c83b95667d7ab42d901e1243e9967f7778bcd1cdc905e1b0294e37579d7c"
+    }
+  },
+  "scenario_id": "GB-09",
+  "schema_version": 1,
+  "title": "Appeal accepted to paid"
+}

@@ -1,0 +1,3 @@
+# Preserve accepted Freeze hashes across operating systems.
+* -text whitespace=trailing-space,space-before-tab,cr-at-eol
+*.sh text eol=lf

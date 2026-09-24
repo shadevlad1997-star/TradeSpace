@@ -1,0 +1,45 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "execution": {
+      "manual_tx_evidence": true,
+      "real_blockchain_transfer": false
+    },
+    "money": {
+      "available_to_frozen_once": true,
+      "frozen_consumed_once": true,
+      "network_fee_included": true
+    },
+    "quote": {
+      "immutable_snapshot": true,
+      "strict_live_ask": true,
+      "volatile_rate_omitted": true
+    },
+    "settlement": {
+      "idempotent_completion": true,
+      "one_pending_guard": true,
+      "partial_request": true,
+      "states": [
+        "pending",
+        "completed"
+      ]
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_settlement_hardening_postgres.py::test_completion_rejection_idempotency_and_tx_hash_uniqueness",
+      "tests/test_settlement_hardening_postgres.py::test_exact_available_idempotency_and_quote_snapshot"
+    ],
+    "recovery_checks": {
+      "settlement": "PASS"
+    },
+    "source_sha256": {
+      "scripts/recovery_smoke.py": "f1c936f2213f1ecd997a158ee99979efb3145c1cd99473b479b25a2c8744f21b",
+      "tests/test_settlement_hardening_postgres.py": "3cf33edce420dcd32e5ed77bb35925d2908755532a33d34ec809d0e8c9d9e89b"
+    }
+  },
+  "scenario_id": "GB-12",
+  "schema_version": 1,
+  "title": "Merchant partial settlement complete"
+}

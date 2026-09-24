@@ -1,0 +1,20 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import attention_panel, status_badge, empty_state %}
+{% from "tradespace/teamlead/_components.html" import header, balance_band, money, accrual_records %}
+{% block content %}
+{{ header('','Обзор','') }}
+{{ balance_band(lead) }}
+{% if not lead.balance %}{{ empty_state('Финансовый счёт ещё не сформирован','Доступные средства, резерв и долг появятся после первых финансовых записей.','wallet') }}{% endif %}
+{% for item in lead.attention %}<div class="ts-tl-attention">{{ attention_panel(item.title,item.text) }}<a href="{{ item.url }}">К расчётам →</a></div>{% endfor %}
+<div class="ts-tl-overview">
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Назначения</span><h2>Ваша команда</h2></div><a href="{{ cabinet_base }}/tradespace/team">Смотреть участников →</a></div>
+<div class="ts-tl-team-counts"><div><strong>{{ lead.team_counts.trader }}</strong><span>Трейдеров с незакрытым назначением</span></div><div><strong>{{ lead.team_counts.merchant }}</strong><span>Мерчантов с незакрытым назначением</span></div></div>
+<p class="ts-note">Управление назначениями и процентами выполняет суперадминистратор. История ваших начислений сохраняется после изменения команды.</p></section>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Финансовая история</span><h2>Накопленные показатели</h2></div></div>
+<dl class="ts-definition-list"><div><dt>Начислено с учётом сторно</dt><dd>{{ money(lead.balance.total_earned_rub if lead.balance else none) }}</dd></div><div><dt>Выплачено, без комиссии</dt><dd>{{ money(lead.balance.total_paid_rub if lead.balance else none) }}</dd></div></dl>
+<a class="ts-button ts-button--secondary" href="{{ cabinet_base }}/tradespace/settlements">Запросы и история расчётов</a></section>
+</div>
+<section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">Источники начислений</span><h2>Начисления по источникам</h2></div><a href="{{ cabinet_base }}/tradespace/accruals">Открыть выписку →</a></div>
+<div class="ts-tl-source-grid">{% for row in lead.source_summary %}<article><h3>{{ row.label }}</h3><dl class="ts-definition-list"><div><dt>В статусе «Начислено»</dt><dd>{{ money(row.credited) }}</dd></div><div><dt>Сторнированные записи</dt><dd>{{ money(row.reversed) }}</dd></div><div><dt>Записей</dt><dd>{{ row.records }}</dd></div></dl></article>{% endfor %}</div><p class="ts-note">Показаны последние 500 записей каждого источника. Это суммы записей, а не доступный остаток.</p></section>
+<section class="ts-section-block"><div class="ts-panel-heading"><h2>Последние начисления</h2><a href="{{ cabinet_base }}/tradespace/accruals">Все записи →</a></div>{{ accrual_records(lead.recent) }}</section>
+{% endblock %}

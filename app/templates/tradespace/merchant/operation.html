@@ -1,0 +1,40 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, money_value %}
+{% from "tradespace/merchant/_components.html" import page_header %}
+{% block content %}{% set op = merchant.selected_operation %}
+{{ page_header('', 'Операция ' ~ op.external_short, '', op.status_label, op.status_tone) }}
+<div class="ts-operation-dossier" data-component="MerchantOperationDetail">
+  <section class="ts-dossier-main">
+    <article class="ts-operation-hero">
+      <div><span>Сумма</span>{{ money_value(op.amount, op.currency) }}</div>
+      <dl><div><dt>Внешний ID</dt><dd><code title="{{ op.external_id }}">{{ op.external_id }}</code></dd></div><div><dt>ID операции</dt><dd><code title="{{ op.id }}">{{ op.id }}</code></dd></div><div><dt>Создана</dt><dd>{{ op.created_at|dt_compact }}</dd></div><div><dt>Обновлена</dt><dd>{{ op.updated_at|dt_compact }}</dd></div></dl>
+    </article>
+    <article class="ts-section-block">
+      <div class="ts-panel-heading"><div><span class="ts-kicker">Платёжный контекст</span><h2>Маршрут оплаты</h2></div></div>
+      <dl class="ts-definition-list">
+        <div><dt>Способ</dt><dd>{{ op.method_label }}</dd></div>
+        <div><dt>Провайдер</dt><dd>{{ op.provider_name or 'Не назначен' }}</dd></div>
+        <div><dt>Реквизит</dt><dd class="ts-sensitive-value">{{ op.requisite or 'Не назначен' }}</dd></div>
+        <div><dt>Получатель</dt><dd>{{ op.recipient_name or '—' }}</dd></div>
+      </dl>
+    </article>
+    <article class="ts-section-block">
+      <div class="ts-panel-heading"><div><span class="ts-kicker">Финансовый снимок</span><h2>Расчёт мерчанта</h2></div></div>
+      <dl class="ts-definition-list">
+        <div><dt>Сумма платежа</dt><dd>{{ money_value(op.amount, op.currency) }}</dd></div>
+        <div><dt>Комиссия</dt><dd>{{ money_value(op.fee_amount, op.currency) }} <small>{{ op.fee_percent }}%</small></dd></div>
+        <div><dt>К зачислению</dt><dd>{{ money_value(op.payable_amount, op.currency) }}</dd></div>
+      </dl>
+
+    </article>
+  </section>
+  <aside class="ts-dossier-side">
+    <article class="ts-section-block">
+      <span class="ts-kicker">Состояние</span><h2>{{ status_badge(op.status_label, op.status_tone) }}</h2>
+      {% if op.failure_reason %}<p class="ts-note">Причина: {{ op.failure_reason }}</p>{% endif %}
+      <dl class="ts-definition-list"><div><dt>Webhook</dt><dd>{{ status_badge(op.webhook_label, op.webhook_tone) }}</dd></div><div><dt>Спор</dt><dd>{{ 'Открыт' if op.has_active_appeal else 'Нет активного' }}</dd></div></dl>
+    </article>
+    <div class="ts-dossier-actions"><a class="ts-button ts-button--secondary" href="{{ cabinet_base }}/tradespace/operations">К списку</a>{% if op.has_active_appeal %}<a class="ts-button ts-button--primary" href="{{ cabinet_base }}/tradespace/disputes">Открыть спор</a>{% else %}<a class="ts-button ts-button--secondary" href="{{ cabinet_base }}/tradespace/disputes">Создать спор</a>{% endif %}</div>
+  </aside>
+</div>
+{% endblock %}

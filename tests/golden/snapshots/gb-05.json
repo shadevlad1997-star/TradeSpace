@@ -1,0 +1,37 @@
+{
+  "automation": "AUTOMATED",
+  "automation_gap": null,
+  "business_result": {
+    "accrual": {
+      "debt_applied_before_available": true,
+      "unique_per_deposit_and_source": true
+    },
+    "attribution": {
+      "merchant_referral": "creation_time_snapshot",
+      "trader_referral": "creation_time_snapshot"
+    },
+    "operation": {
+      "state": "paid"
+    },
+    "platform": {
+      "gross_margin_recorded": true,
+      "referral_expense_recorded": true
+    },
+    "reconciliation": {
+      "platform_income": true,
+      "teamlead_balance": true
+    }
+  },
+  "evidence": {
+    "pytest_nodes": [
+      "tests/test_teamlead_postgres.py::test_postgres_independent_referral_matrix_shared_balance_settlement_and_reversal"
+    ],
+    "recovery_checks": {},
+    "source_sha256": {
+      "tests/test_teamlead_postgres.py": "2367e5d38b3e22af66641501d337ec0e979f77cd6a42b443a9822583844c3bee"
+    }
+  },
+  "scenario_id": "GB-05",
+  "schema_version": 1,
+  "title": "Dual TeamLead attribution"
+}
