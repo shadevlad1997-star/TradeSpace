@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -18,6 +20,9 @@ _cache_expires_at: datetime | None = None
 _last_success_value: Decimal | None = None
 _last_success_at: datetime | None = None
 _strict_rolling_cache: RollingRapiraQuote | None = None
+_strict_request_loop = None
+_strict_request_lock: asyncio.Lock | None = None
+_strict_retry_after = 0.0
 _PROVIDER_FUTURE_SKEW = timedelta(seconds=5)
 
 
@@ -248,7 +253,7 @@ async def fetch_rapira_rub_usdt_rate() -> Decimal | None:
     return None
 
 
-async def get_strict_rolling_ask_quote() -> RollingRapiraQuote:
+async def _get_strict_rolling_ask_quote_once() -> RollingRapiraQuote:
     """Return a fresh direct USDT/RUB Rapira ask without any fallback."""
     global _strict_rolling_cache
     now = datetime.now(timezone.utc)
@@ -296,6 +301,30 @@ async def get_strict_rolling_ask_quote() -> RollingRapiraQuote:
         raise RollingRateUnavailable('rolling_rate_unavailable')
     _strict_rolling_cache = quote
     return quote
+
+
+async def get_strict_rolling_ask_quote() -> RollingRapiraQuote:
+    """Reuse strict parsing and coalesce requests in each application worker.
+
+    Successful quotes retain their existing cache and freshness limits.
+    Failed provider requests have a bounded cooldown and never use a fallback.
+    """
+    global _strict_request_loop, _strict_request_lock, _strict_retry_after
+    loop = asyncio.get_running_loop()
+    if _strict_request_loop is not loop:
+        _strict_request_loop = loop
+        _strict_request_lock = asyncio.Lock()
+        _strict_retry_after = 0.0
+    async with _strict_request_lock:
+        if time.monotonic() < _strict_retry_after:
+            raise RollingRateUnavailable('rolling_rate_unavailable')
+        try:
+            return await _get_strict_rolling_ask_quote_once()
+        except RollingRateUnavailable:
+            _strict_retry_after = time.monotonic() + max(
+                5, min(30, settings.RAPIRA_RATES_CACHE_SECONDS)
+            )
+            raise
 
 
 def _configured_fallback_rate() -> Decimal:
