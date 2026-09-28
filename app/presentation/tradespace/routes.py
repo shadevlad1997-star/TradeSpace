@@ -4,7 +4,7 @@ import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import realm_cabinet_path, realm_login_path, request_auth_realm
@@ -13,6 +13,7 @@ from app.presentation.tradespace.merchant import load_merchant_page
 from app.presentation.tradespace.navigation import mobile_navigation_for_role, mobile_overflow_for_role, navigation_for_role, profile_for_role, section_for_role
 from app.presentation.tradespace.trader import load_trader_page
 from app.presentation.tradespace.teamlead import load_teamlead_page
+from app.presentation.tradespace.teamlead.estimate import read_teamlead_estimate
 from app.presentation.tradespace.staff import load_staff_page
 from app.presentation.tradespace.staff.access import STAFF_ROLES
 from app.presentation.tradespace.wallet import load_wallet
@@ -389,6 +390,31 @@ async def tradespace_root(request: Request):
     realm = request_auth_realm(request)
     target = realm_cabinet_path(realm) if realm else "/cabinet"
     return RedirectResponse(target, status_code=303)
+
+
+@router.get("/cabinet/tradespace/teamlead-estimate", name="tradespace_teamlead_estimate")
+async def tradespace_teamlead_estimate(request: Request, db: AsyncSession = Depends(get_db)):
+    """Read the current TeamLead balance and strict cached quote without mutation."""
+    from app.services.rapira import RollingRateUnavailable
+    from app.services.teamlead import TeamLeadSettlementUnavailable
+    from app.web import routes as legacy
+
+    headers = {"Cache-Control": "no-store, max-age=0"}
+    if not _tradespace_enabled(request):
+        return JSONResponse({"detail": "unavailable"}, status_code=503, headers=headers)
+    user, response = await _authenticated_user(request, db)
+    if response or user is None:
+        return JSONResponse({"detail": "not authenticated"}, status_code=401, headers=headers)
+    if request_auth_realm(request) != "staff" or user.role != "teamlead":
+        return JSONResponse({"detail": "forbidden"}, status_code=403, headers=headers)
+    if legacy.staff_2fa_setup_required(user) or not request.session.get("twofa_verified"):
+        return JSONResponse({"detail": "2fa required"}, status_code=403, headers=headers)
+    try:
+        estimate = await read_teamlead_estimate(db, user.id)
+    except (RollingRateUnavailable, TeamLeadSettlementUnavailable):
+        return JSONResponse({"detail": "rate unavailable"}, status_code=503,
+                            headers={**headers, "Retry-After": "20"})
+    return JSONResponse(estimate, headers=headers)
 
 
 async def trader_preview(request, user, subject, db):

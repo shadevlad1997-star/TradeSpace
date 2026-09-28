@@ -6,7 +6,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow">
   <title>Вход · TradeSpace</title>
-  <link rel="stylesheet" href="/static/tradespace/css/tokens.css?v=3"><link rel="stylesheet" href="/static/tradespace/css/app.css?v=8">
+  <link rel="stylesheet" href="/static/tradespace/css/tokens.css?v=3"><link rel="stylesheet" href="/static/tradespace/css/app.css?v=10">
 </head>
 <body class="ts-auth">
   <main class="ts-auth-layout">
@@ -18,15 +18,15 @@
     <section class="ts-auth-panel">
       <div class="ts-auth-card">
         <p class="ts-eyebrow">{% if expected_realm == 'staff' %}Сотрудникам{% elif expected_realm == 'merchant' %}Мерчантам{% elif expected_realm == 'trader' %}Трейдерам{% elif expected_realm == 'aggregator' %}Агрегаторам{% else %}Вход{% endif %}</p>
-        <h2>Вход в TradeSpace</h2><p class="ts-auth-card__intro">Используйте выданные данные. 2FA-код нужен, если защита подключена для учётной записи.</p>
+        <h2 class="ts-auth-card__logo"><img src="/static/tradespace/login-logo.svg?v=1" alt="TradeSpace" width="2172" height="434"></h2>
         {% if error %}<div class="ts-feedback ts-feedback--validation" role="alert"><span>{{ icon('shield',18) }}</span><p>{{ error }}</p></div>{% endif %}
         <form method="post" action="{{ login_action }}" class="ts-form-stack">{{ csrf_input(request) }}
           {{ form_field('Email', 'email', 'email', 'username', True) }}
           {{ form_field('Пароль', 'password', 'password', 'current-password', True) }}
-          {{ form_field('2FA-код', 'otp', 'text', 'one-time-code', False, 'Оставьте пустым, если 2FA не подключена.', 'numeric') }}
+          {{ form_field('2FA-код', 'otp', 'text', 'one-time-code', False, '', 'numeric') }}
           <button class="ts-button ts-button--primary ts-button--wide" type="submit">Войти в кабинет</button>
         </form>
-        <p class="ts-auth-card__footnote">Доступ выдаёт администратор платформы. На странице входа нельзя создать аккаунт или восстановить секрет.</p>
+
       </div>
     </section>
   </main>

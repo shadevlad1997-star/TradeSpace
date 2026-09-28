@@ -2482,12 +2482,15 @@ async def cabinet_usdt_rub_rate(request: Request, db: AsyncSession = Depends(get
                 return JSONResponse(
                     {'detail': exc.code, 'code': exc.code},
                     status_code=503,
+                    headers={'Cache-Control': 'no-store, max-age=0', 'Retry-After': '20'},
                 )
-            return {
+            return JSONResponse({
                 'rate_rub': str(quote['rate_rub']),
                 'rate_source': quote['rate_source'],
                 'source': quote['rate_source'],
                 'updated_at': quote.get('rate_updated_at').isoformat() if quote.get('rate_updated_at') else None,
+                'fetched_at': quote.get('rate_fetched_at').isoformat() if quote.get('rate_fetched_at') else None,
+                'valid_for_seconds': quote.get('rate_valid_for_seconds', 0),
                 'stale': bool(quote.get('rate_stale')),
                 'fee_usdt': str(quote['fee_usdt']),
                 'fee_rub': str(quote['fee_rub']),
@@ -2495,7 +2498,7 @@ async def cabinet_usdt_rub_rate(request: Request, db: AsyncSession = Depends(get
                 'pending_rub': str(quote['pending_rub']),
                 'max_request_usdt': str(quote['max_request_usdt']),
                 'cache_seconds': settings.RAPIRA_RATES_CACHE_SECONDS,
-            }
+            }, headers={'Cache-Control': 'no-store, max-age=0'})
     rate_quote = await get_rapira_rub_usdt_quote()
     rate_source = f'{rate_quote.source} stale' if rate_quote.stale else rate_quote.source
     return {

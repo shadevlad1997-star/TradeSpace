@@ -220,6 +220,8 @@ async def merchant_settlement_quote(
             'max_request_usdt': Decimal('0.00'),
             'rate_source': 'unavailable',
             'rate_updated_at': None,
+            'rate_fetched_at': None,
+            'rate_valid_for_seconds': 0,
             'rate_stale': True,
             'freshness_basis': None,
         }
@@ -229,6 +231,9 @@ async def merchant_settlement_quote(
     max_request_usdt = Decimal('0.00')
     if free_rub >= fee_rub + TWOPLACES:
         max_request_usdt = usdt((free_rub - fee_rub) / current_rate)
+    valid_until = min(live_quote.fetched_at, live_quote.updated_at) + timedelta(
+        seconds=settings.ROLLING_RAPIRA_MAX_AGE_SECONDS,
+    )
     return {
         'rate_available': True,
         'rate_rub': current_rate,
@@ -239,6 +244,10 @@ async def merchant_settlement_quote(
         'max_request_usdt': max_request_usdt,
         'rate_source': live_quote.source,
         'rate_updated_at': live_quote.updated_at,
+        'rate_fetched_at': live_quote.fetched_at,
+        'rate_valid_for_seconds': max(
+            0, int((valid_until - datetime.now(timezone.utc)).total_seconds()),
+        ),
         'rate_stale': False,
         'freshness_basis': live_quote.freshness_basis,
     }

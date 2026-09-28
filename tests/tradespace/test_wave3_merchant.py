@@ -298,6 +298,8 @@ def _quote():
         "max_request_usdt": Decimal("760.43"),
         "rate_source": "rapira_live",
         "rate_updated_at": datetime.now(timezone.utc),
+        "rate_fetched_at": datetime.now(timezone.utc),
+        "rate_valid_for_seconds": 59,
         "rate_stale": False,
     }
 
@@ -335,7 +337,13 @@ def test_wave3_merchant_populated_screens_scope_money_and_secret_boundaries(monk
                 overview = await client.get("/merchant/cabinet")
                 assert overview.status_code == 200
                 assert 'data-component="MerchantOverview"' in overview.text
-                assert data["merchant"].name in overview.text
+                assert data["merchant"].name not in overview.text
+                cards = re.findall(r'<article class="ts-command-card[^>]*>(.*?)</article>', overview.text, re.S)
+                assert len(cards) == 4
+                assert all("<p>" not in card for card in cards)
+                assert all('class="ts-command-number"' in card for card in cards)
+                for path in ("operations", "settlements", "integration", "disputes"):
+                    assert f'href="/merchant/cabinet/tradespace/{path}"' in overview.text
                 assert "76543.21" in overview.text and "1234.56" in overview.text
                 assert data["foreign"].name not in overview.text
 
@@ -367,6 +375,11 @@ def test_wave3_merchant_populated_screens_scope_money_and_secret_boundaries(monk
                 finance = await client.get("/merchant/cabinet/tradespace/finance")
                 assert "Доступные средства" in finance.text and "Зарезервировано" in finance.text and "Rolling" in finance.text
                 assert "75.000000" in finance.text
+                assert "Можно использовать для нового запроса расчёта." not in finance.text
+                assert "Средства по запросам на рассмотрении." not in finance.text
+                assert "Погашается подтверждёнными операциями по Rolling правилам." not in finance.text
+                event_cells = re.findall(r'<td><strong>[^<]+</strong>(.*?)</td>', finance.text, re.S)
+                assert event_cells and all("<small>" not in cell for cell in event_cells)
                 assert f'action="/merchant/cabinet/rolling/transfers/{data["transfer"].id}/confirm"' in finance.text
                 assert f'action="/merchant/cabinet/rolling/transfers/{data["transfer"].id}/dispute"' in finance.text
 
@@ -376,9 +389,14 @@ def test_wave3_merchant_populated_screens_scope_money_and_secret_boundaries(monk
                 assert "10500.00" in settlements.text
                 assert 'action="/merchant/cabinet/settlements/request"' in settlements.text
                 assert "760.43" in settlements.text
+                assert "Курс Rapira" in settlements.text
+                assert "Что фиксируется" not in settlements.text
+                assert "После создания RUB эквивалент" not in settlements.text
 
                 integration = await client.get("/merchant/cabinet/tradespace/integration")
                 assert integration.status_code == 200
+                assert 'aria-label="Режим интеграции"' not in integration.text
+                assert "Подключение Production" not in integration.text
                 assert data["api_key"].api_key in integration.text
                 assert data["signing"].key_id in integration.text
                 assert "deposit.paid" in integration.text
@@ -399,6 +417,7 @@ def test_wave3_merchant_populated_screens_scope_money_and_secret_boundaries(monk
                 account = await client.get("/merchant/cabinet/tradespace/security")
                 assert account.status_code == 200
                 assert "<h1>Аккаунт</h1>" in account.text
+                assert "Пароль, 2FA и текущая сессия." not in account.text
                 assert 'action="/merchant/cabinet/security/password"' in account.text
                 assert 'data-component="MobileNavigation"' in account.text
 

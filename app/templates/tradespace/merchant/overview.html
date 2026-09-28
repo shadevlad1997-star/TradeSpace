@@ -2,7 +2,7 @@
 {% from "tradespace/components/ui.html" import status_badge, money_value, empty_state, attention_panel %}
 {% from "tradespace/merchant/_components.html" import page_header, balance_strip, operation_table %}
 {% block content %}
-{{ page_header('', 'Обзор', merchant.merchant_name, 'Sandbox' if merchant.sandbox_mode else 'Production', 'attention' if merchant.sandbox_mode else 'positive') }}
+{{ page_header('', 'Обзор', '', 'Sandbox' if merchant.sandbox_mode else 'Production', 'attention' if merchant.sandbox_mode else 'positive') }}
 {{ balance_strip(merchant) }}
 {% if attention_only %}
   {% if merchant.attention_count %}{{ attention_panel('Есть события, требующие внимания', 'Проверьте активные операции, споры, Rolling transfers и состояние webhook.', 'attention') }}
@@ -12,25 +12,21 @@
   <article class="ts-command-card">
     <header><span class="ts-kicker">Операции</span><h2>Операции сейчас</h2></header>
     <strong class="ts-command-number">{{ merchant.analytics.active_count }}</strong>
-    <p>Открытых операций из {{ merchant.analytics.total_count }} за доступный период.</p>
     <a href="{{ cabinet_base }}/tradespace/operations">Открыть поток операций</a>
   </article>
   <article class="ts-command-card">
     <header><span class="ts-kicker">Расчёты</span><h2>Запросы расчёта</h2></header>
     <strong class="ts-command-number">{{ merchant.pending_settlement_count }}</strong>
-    <p>Активных запросов. Сумма в ожидании уже находится в резерве.</p>
     <a href="{{ cabinet_base }}/tradespace/settlements">Перейти к расчётам</a>
   </article>
   <article class="ts-command-card{% if merchant.webhook_issue_count %} is-attention{% endif %}">
     <header><span class="ts-kicker">Интеграция</span><h2>Доставка Webhook</h2></header>
     <strong class="ts-command-number">{{ merchant.webhook_issue_count }}</strong>
-    <p>Событий с ошибкой или повторной доставкой среди последних записей.</p>
     <a href="{{ cabinet_base }}/tradespace/integration">Проверить интеграцию</a>
   </article>
   <article class="ts-command-card{% if merchant.active_appeal_count %} is-attention{% endif %}">
     <header><span class="ts-kicker">Контроль</span><h2>Активные споры</h2></header>
     <strong class="ts-command-number">{{ merchant.active_appeal_count }}</strong>
-    <p>Открытых обращений по операциям мерчанта.</p>
     <a href="{{ cabinet_base }}/tradespace/disputes">Открыть споры</a>
   </article>
 </section>
@@ -44,7 +40,7 @@
     <dl class="ts-definition-list">
       <div><dt>Оплаченный объём</dt><dd>{{ money_value(merchant.analytics.paid_volume, 'RUB') }}</dd></div>
       <div><dt>Зачислено после комиссии</dt><dd>{{ money_value(merchant.analytics.payable_total, 'RUB') }}</dd></div>
-      <div><dt>Комиссия мерчанта</dt><dd>{{ money_value(merchant.analytics.fee_total, 'RUB') }}</dd></div>
+      <div><dt>Комиссия платформы</dt><dd>{{ money_value(merchant.analytics.fee_total, 'RUB') }}</dd></div>
     </dl>
   </article>
   <article class="ts-section-block">

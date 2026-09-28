@@ -23,6 +23,17 @@
       ],
       "reason": "Explicit owner authorization: paid disputes are non-financial; unpaid disputes settle once using saved fees; accurate approval message",
       "validation": "375 PostgreSQL tests passed, including 27 new dispute cases; all 17 Golden JSONs unchanged; only these two protected paths accepted"
+    },
+    {
+      "date": "2026-09-28",
+      "files": [
+        "app/presentation/tradespace/routes.py",
+        "app/services/rapira.py",
+        "app/services/settlements.py",
+        "app/web/routes.py"
+      ],
+      "reason": "Owner-authorized Rapira request coalescing/backoff and quote freshness metadata; owner-requested read-only, role/2FA-scoped TeamLead USDT estimate. Exact diffs reviewed; no financial command, fee formula, permission, migration or persisted-status changes.",
+      "validation": "Full PostgreSQL run: 391 passed plus one stale GET-route inventory expectation, corrected with 8/8 focused tests. Targeted quote/accounting cases passed; TeamLead 14/14 isolated. Golden 16/16 with 23 passing oracles; preflight 19/19; HTTP smoke 4/4; recovery 14/14 including signed HTTP 500 -> retry -> 204. Remaining 86 protected hashes and all 17 Golden JSON files unchanged."
     }
   ],
   "areas": [
@@ -541,7 +552,7 @@
       "areas": [
         "FZ-03"
       ],
-      "sha256": "1f15c6344e472eabf8b2d5c5c2ef95b72e5264f3ab2853d22922e22509392e44"
+      "sha256": "f64d790912a19360a8a1baae4535c98ffe338e51b4d12c02056c4978c7215674"
     },
     "app/presentation/tradespace/wallet.py": {
       "areas": [
@@ -662,7 +673,7 @@
       "areas": [
         "FZ-10"
       ],
-      "sha256": "4f4d9193499b249e5d735da6b4b17a847a0bf68ec086748afa7bb225708a52f8"
+      "sha256": "ae2279e4a4537443679be8b78814d93ad0ba718293845f606cde20c72e3b47f9"
     },
     "app/services/requisites.py": {
       "areas": [
@@ -686,7 +697,7 @@
       "areas": [
         "FZ-12"
       ],
-      "sha256": "70a7a3e18b2849a83ecea2f1e42fd343e6a7bfb79e8060c5f6e709f6a34e38f9"
+      "sha256": "15e18bff7a7427e38fd7970a4c7f176794feffde14509ca1b9cd338907c87e80"
     },
     "app/services/sms.py": {
       "areas": [
@@ -734,7 +745,7 @@
       "areas": [
         "FZ-18"
       ],
-      "sha256": "0fa89e57c6518f514919395eadf36bd9dcf2f2bcb286a650ee9908f90a9e3992"
+      "sha256": "93bf6d9002d137039cca55f7efa9ffeb2c0492bd93c590bf1ee86b98ff33f0ae"
     },
     "app/workers/celery_app.py": {
       "areas": [
