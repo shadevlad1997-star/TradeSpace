@@ -181,4 +181,11 @@ Concurrency selection запускался три раза подряд: пят�
 
 ## Публикация
 
-Ветка, commit SHA, PR и GitHub Actions добавляются после проверки staged tree, секретов и push. Merge и deploy запрещены этой задачей.
+- Private repository: `https://github.com/shadevlad1997-star/TradeSpace`
+- Published branch: `codex/tradespace-release-audit`
+- Audited release commit: `a9037dd88ae4adfed8e58e9dea90fa52b6832dba`
+- Draft PR: `https://github.com/shadevlad1997-star/TradeSpace/pull/2`
+- Push CI: `https://github.com/shadevlad1997-star/TradeSpace/actions/runs/37207541658` — SUCCESS
+- Pull request CI: `https://github.com/shadevlad1997-star/TradeSpace/actions/runs/37207574142` — SUCCESS
+
+Оба запуска прошли Docker build, security/repository hygiene, PostgreSQL concurrency, migrations и полный unit/integration job. Merge и deploy этой задачей не выполнялись.
