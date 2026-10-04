@@ -29,9 +29,9 @@ class FreezeArea:
 AREAS = (
     FreezeArea("FZ-01", "Production schema, persisted entities, constraints and migration history.", ("app/models/*.py", "app/core/enums.py", "alembic/versions/*.py")),
     FreezeArea("FZ-02", "Merchant HMAC, replay protection and API-key mode are external security contracts.", ("app/api/deps.py", "app/core/merchant_hmac.py", "app/services/merchant_api_keys.py", "app/services/integration_modes.py", "app/api/v1/integration.py", "app/db/session.py", "app/core/config.py")),
-    FreezeArea("FZ-03", "Shared authentication, realm, CSRF/session, product-only entry routes and wallet-reader authorization.", ("app/core/security.py", "app/core/logging.py", "app/core/session.py", "app/core/middleware.py", "app/core/auth_hardening.py", "app/core/rate_limit.py", "app/core/client_ip.py", "app/core/access.py", "app/web/__init__.py", "app/presentation/tradespace/routes.py", "app/presentation/tradespace/wallet.py")),
+    FreezeArea("FZ-03", "Shared authentication, realm, CSRF/session, product-only entry routes and wallet-reader authorization.", ("app/core/security.py", "app/core/logging.py", "app/core/session.py", "app/core/middleware.py", "app/core/auth_hardening.py", "app/core/rate_limit.py", "app/core/client_ip.py", "app/core/access.py", "app/web/__init__.py", "app/presentation/tradespace/routes.py", "app/presentation/tradespace/wallet.py", "app/web/bank_connections.py", "app/services/bank_connections.py")),
     FreezeArea("FZ-04", "Idempotent Deposit/Aggregator creation and initial collateral reservation.", ("app/api/v1/merchant.py", "app/services/aggregators.py")),
-    FreezeArea("FZ-05", "Deterministic routing, Requisite eligibility and collateral reservation.", ("app/services/requisites.py",)),
+    FreezeArea("FZ-05", "Deterministic routing, Requisite eligibility and collateral reservation.", ("app/services/requisites.py", "app/services/payment_qr.py")),
     FreezeArea("FZ-06", "Fee resolution, immutable fee snapshots and platform-margin mathematics.", ("app/services/fee_tiers.py", "app/services/fees.py", "app/services/platform_income.py")),
     FreezeArea("FZ-07", "Merchant/Trader balance mutation and reconciliation semantics.", ("app/services/ledger.py", "app/services/finance_reconciliation.py")),
     FreezeArea("FZ-08", "Authoritative Deposit confirmation, failure and expiration transitions.", ("app/services/deposit_confirmation.py", "app/services/deposit_lifecycle.py", "app/services/deposit_ttl.py")),
@@ -49,6 +49,7 @@ AREAS = (
         "Existing browser/admin mutation handlers, schemas and API contract ordering.",
         (
             "app/web/routes.py",
+            "app/web/payment_qr.py",
             "app/api/v1/admin.py",
             "app/api/v1/cabinet.py",
             "app/api/v1/router.py",

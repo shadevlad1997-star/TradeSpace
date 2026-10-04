@@ -194,13 +194,20 @@ def test_acceptance_specialized_appeal_outcome_and_duplicate_resolution(decision
             async with AsyncSession(engine,expire_on_commit=False) as db:
                 dep=await db.get(Deposit,oid);dep.status='appeal_opened'
                 appeal=Appeal(operation_id=oid,operation_type='deposit',created_by=tid,status='opened',metadata_json={'previous_deposit_status':'pending','trader_id':str(tid)})
-                db.add(appeal);await db.commit();aid=appeal.id
+                db.add(appeal)
+                admin=User(email=f'appeal-review-{uuid.uuid4().hex}@example.test', password_hash=hash_password('synthetic-review-only'), role='admin')
+                db.add(admin);await db.commit();aid=appeal.id;reviewer_id=admin.id
+                if decision=='reject':
+                    # QR-1.1: the trader may refer a claim, never finally reject it.
+                    with pytest.raises(ValueError,match='administrative review'):
+                        await reject_deposit_appeal(db,appeal,actor_id=tid)
+                    await db.rollback()
             async def resolve():
                 async with AsyncSession(engine,expire_on_commit=False) as db:
                     ap=await db.get(Appeal,aid)
                     try:
                         fn=approve_deposit_appeal if decision=='approve' else reject_deposit_appeal
-                        await fn(db,ap,actor_id=tid);await db.commit();return 'resolved'
+                        await fn(db,ap,actor_id=tid if decision=='approve' else reviewer_id);await db.commit();return 'resolved'
                     except ValueError:
                         await db.rollback();return 'already_resolved'
             assert sorted(await asyncio.wait_for(asyncio.gather(resolve(),resolve()),15))==['already_resolved','resolved']

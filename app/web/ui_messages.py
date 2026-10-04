@@ -212,6 +212,35 @@ _MESSAGE_ALIASES = {
 }
 
 
+# Explicit allowlisted QR errors: never reflect arbitrary upload content.
+_QR_VALIDATION_MESSAGES = {
+    "qr_payload_invalid": "Некорректное содержимое QR.",
+    "qr_host_invalid": "Нужен платёжный QR NSPK для приёма оплаты.",
+    "qr_parameters_invalid": "Некорректные параметры QR NSPK.",
+    "qr_parameters_unsupported": "Неподдерживаемые или повторяющиеся параметры QR.",
+    "qr_static_required": "Поддерживается только статический QR NSPK; динамический QR не принимается.",
+    "qr_open_amount_required": "Нужен статический QR со свободной суммой, без параметра sum.",
+    "qr_bank_currency_invalid": "Некорректные банк, валюта или контрольное поле QR NSPK.",
+    "qr_file_size": "Загрузите PNG/JPEG размером не более 1 МБ.",
+    "qr_image_format": "Поддерживается одно изображение PNG или JPEG.",
+    "qr_image_dimensions": "Размер изображения: от 64 до 4096 пикселей, не более 8 мегапикселей.",
+    "qr_single_code_required": "На изображении должен быть ровно один читаемый QR-код.",
+    "qr_image_invalid": "Не удалось прочитать PNG/JPEG с QR-кодом.",
+    "qr_upload_required": "Для QR NSPK загрузите PNG/JPEG со статическим QR и свободной суммой.",
+    "qr_type_unknown": "Укажите «Статический QR», чтобы использовать короткую ссылку NSPK.",
+    "qr_metadata_missing": "Тип QR достоверно не установлен: отсутствуют необходимые метаданные банка.",
+    "qr_dynamic_upload": "Распознан динамический QR. В статическом режиме он не принимается.",
+    "qr_format_unsupported": "QR прочитан, но его формат не поддерживается. Нужен платёжный QR NSPK.",
+    "qr_type_unsupported": "Этот тип QR NSPK не поддерживается для приёма оплаты.",
+    "qr_bank_unavailable": "Динамический QR недоступен: банковская интеграция ещё не подключена.",
+    "qr_receiver_required": "Укажите получателя QR",
+    "requisite_value_required": "Укажите реквизит",
+}
+for _qr_code, _qr_message in _QR_VALIDATION_MESSAGES.items():
+    _SPECS[_qr_code] = _MessageSpec("validation", _qr_message, "requisites", "requisite", "qr_image")
+    _MESSAGE_ALIASES[_qr_message] = _qr_code
+
+
 _SUCCESS_MESSAGES = {
     "Реквизит создан",
     "Статус реквизита изменен",
@@ -251,6 +280,8 @@ _SUCCESS_MESSAGES = {
     "Aggregator settings saved",
     "Aggregator status changed",
     "Апелляция создана",
+    "Апелляция подтверждена",
+    "Платёж не найден. Спор передан администрации",
     "Апелляция принята, баланс пересчитан",
     "Апелляция отправлена на решение admin/superadmin",
     "Срок обработки продлен",

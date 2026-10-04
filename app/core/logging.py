@@ -95,6 +95,7 @@ def redact_sensitive(value, key: object | None = None):
         return tuple(redact_sensitive(item) for item in value)
     if isinstance(value, str):
         redacted = BEARER_RE.sub(lambda match: f'{match.group(1)} ***redacted***', value)
+        redacted = re.sub(r'(/pay/qr/)[A-Za-z0-9_-]{43}', r'\1[redacted]', redacted)
         redacted = URI_CREDENTIAL_RE.sub(lambda match: match.group('prefix') + '***redacted***', redacted)
         return ASSIGNMENT_RE.sub(lambda match: f'{match.group("label")}***redacted***', redacted)
     return value

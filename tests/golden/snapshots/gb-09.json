@@ -26,7 +26,7 @@
     ],
     "recovery_checks": {},
     "source_sha256": {
-      "tests/test_acceptance_financial_postgres.py": "fc58421607d5567b99dccca3289f830e5d7479663d6257634c67ab36fbf0044b",
+      "tests/test_acceptance_financial_postgres.py": "60bca1ff07510f3d0d32dac6de30b2299c1a8debf0c7a0682eb867d176654658",
       "tests/test_acceptance_known_gaps.py": "8437c83b95667d7ab42d901e1243e9967f7778bcd1cdc905e1b0294e37579d7c"
     }
   },

@@ -76,6 +76,8 @@ app.add_middleware(RequestObservabilityMiddleware)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(api_router)
 app.include_router(web_router)
+from app.web.payment_qr import router as payment_qr_router
+app.include_router(payment_qr_router)
 
 
 async def require_docs_superadmin(request: Request) -> None:

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import DepositStatus
-from app.models import Deposit
+from app.models import Deposit, Appeal
 from app.services.aggregator_enqueue import enqueue_aggregator_callback_delivery
 from app.services.aggregators import sync_payment_from_deposit
 from app.services.antiscam import check_payment_result_for_risk
@@ -26,7 +26,6 @@ logger = logging.getLogger('app.finance')
 CONFIRMABLE_DEPOSIT_STATUSES = {
     DepositStatus.created.value,
     DepositStatus.pending.value,
-    DepositStatus.appeal_opened.value,
 }
 
 
@@ -93,6 +92,12 @@ async def confirm_deposit_payment(
         )).scalar_one_or_none()
         if not deposit:
             raise DepositConfirmationNotFound('Заявка не найдена', api_detail='not found')
+        if deposit.method == 'sbp_qr':
+            from app.models import Requisite, User
+            owner = await db.scalar(select(Requisite.trader_id).where(Requisite.id == deposit.requisites_id))
+            actor = await db.get(User, actor_id)
+            if owner != actor_id or not actor or actor.role not in {'trader','operator'}:
+                raise DepositConfirmationConflict('QR NSPK подтверждает назначенный трейдер')
         if deposit.status == DepositStatus.paid.value:
             raise DepositConfirmationConflict('Заявка уже подтверждена', api_detail='already paid')
         if deposit.status not in CONFIRMABLE_DEPOSIT_STATUSES:
@@ -100,6 +105,8 @@ async def confirm_deposit_payment(
                 'Заявку в текущем статусе нельзя подтвердить',
                 api_detail=f'deposit status {deposit.status} cannot be confirmed',
             )
+        if await db.scalar(select(Appeal.id).where(Appeal.operation_type == 'deposit', Appeal.operation_id == deposit.id, Appeal.status.in_(['opened','in_review'])).limit(1)):
+            raise DepositConfirmationConflict('Решение по заявке принимается в споре')
         if deposit_is_expired(deposit):
             finalization = await finalize_unsuccessful_deposit(
                 db,
@@ -122,6 +129,7 @@ async def confirm_deposit_payment(
             )
 
         await settle_trader_deposit_balance(db, deposit)
+        deposit.qr_reserved = False
         deposit.status = DepositStatus.paid.value
         settlement = await settle_deposit_credit(
             db,

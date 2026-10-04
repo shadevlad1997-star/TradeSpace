@@ -142,6 +142,10 @@ class Deposit(Base, TimestampMixin):
     method: Mapped[str]=mapped_column(String(32))
     status: Mapped[str]=mapped_column(String(32), default=DepositStatus.created.value, index=True)
     requisites_id: Mapped[uuid.UUID|None]=mapped_column(UUID(as_uuid=True), ForeignKey('requisites.id'), nullable=True)
+    qr_identity: Mapped[str|None]=mapped_column(String(32), nullable=True)
+    qr_snapshot: Mapped[dict|None]=mapped_column(JSON, nullable=True)
+    qr_token: Mapped[str|None]=mapped_column(String(64), nullable=True, unique=True)
+    qr_reserved: Mapped[bool]=mapped_column(Boolean, default=False, server_default=text('false'), nullable=False)
     client_ip: Mapped[str|None]=mapped_column(String(64), nullable=True)
     metadata_json: Mapped[dict]=mapped_column(JSON, default=dict)
     expires_at: Mapped[datetime]=mapped_column(
@@ -151,6 +155,9 @@ class Deposit(Base, TimestampMixin):
         server_default=text("now() + interval '15 minutes'"),
     )
     __table_args__=(
+        CheckConstraint("method <> 'sbp_qr' OR (qr_identity IS NOT NULL AND qr_snapshot IS NOT NULL AND qr_token IS NOT NULL AND currency = 'RUB')", name='ck_deposit_qr_snapshot'),
+        Index('uq_deposit_active_qr_amount', 'qr_identity', 'amount', 'currency', unique=True, postgresql_where=text('qr_reserved = true')),
+
         UniqueConstraint('merchant_id','external_id', name='uq_deposit_merchant_external'),
         UniqueConstraint('merchant_id','idempotency_key', name='uq_deposit_merchant_idempotency'),
         Index('ix_deposits_status_expires_at', 'status', 'expires_at'),
@@ -1206,6 +1213,7 @@ class Requisite(Base, TimestampMixin):
     __tablename__='requisites'
     id: Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     trader_id: Mapped[uuid.UUID|None]=mapped_column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+    qr_identity: Mapped[str|None]=mapped_column(String(32), nullable=True, index=True)
     owner_name: Mapped[str]=mapped_column(String(160))
     full_name: Mapped[str|None]=mapped_column(String(160), nullable=True)
     method: Mapped[str]=mapped_column(String(32))

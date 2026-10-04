@@ -1,30 +1,4 @@
 {
-  "acceptance_history": [
-    {
-      "date": "2026-09-24",
-      "files": [
-        "alembic/versions/0027_aggregator_credentials.py",
-        "app/api/v1/aggregator.py",
-        "app/api/v1/integration.py",
-        "app/models/__init__.py",
-        "app/models/integration.py",
-        "app/services/aggregator_credentials.py",
-        "app/services/aggregators.py",
-        "app/web/routes.py"
-      ],
-      "reason": "Explicit owner authorization: independent environment-bound aggregator credentials and Production admission",
-      "validation": "345 PostgreSQL tests passed; financial/callback functions preserved; no Golden snapshots changed"
-    },
-    {
-      "date": "2026-09-24",
-      "files": [
-        "app/services/appeals.py",
-        "app/web/routes.py"
-      ],
-      "reason": "Explicit owner authorization: paid disputes are non-financial; unpaid disputes settle once using saved fees; accurate approval message",
-      "validation": "375 PostgreSQL tests passed, including 27 new dispute cases; all 17 Golden JSONs unchanged; only these two protected paths accepted"
-    }
-  ],
   "areas": [
     {
       "id": "FZ-01",
@@ -61,7 +35,9 @@
         "app/core/access.py",
         "app/web/__init__.py",
         "app/presentation/tradespace/routes.py",
-        "app/presentation/tradespace/wallet.py"
+        "app/presentation/tradespace/wallet.py",
+        "app/web/bank_connections.py",
+        "app/services/bank_connections.py"
       ],
       "reason": "Shared authentication, realm, CSRF/session, product-only entry routes and wallet-reader authorization."
     },
@@ -76,7 +52,8 @@
     {
       "id": "FZ-05",
       "patterns": [
-        "app/services/requisites.py"
+        "app/services/requisites.py",
+        "app/services/payment_qr.py"
       ],
       "reason": "Deterministic routing, Requisite eligibility and collateral reservation."
     },
@@ -189,6 +166,7 @@
       "id": "FZ-18",
       "patterns": [
         "app/web/routes.py",
+        "app/web/payment_qr.py",
         "app/api/v1/admin.py",
         "app/api/v1/cabinet.py",
         "app/api/v1/router.py",
@@ -198,8 +176,8 @@
       "reason": "Existing browser/admin mutation handlers, schemas and API contract ordering."
     }
   ],
-  "baseline_branch": "codex/tradespace-wave1",
-  "baseline_commit": "8b88337e55eb5d8b6d3a3d2ac78e7ed8943d0279",
+  "baseline_branch": "codex/qr2-bank-drafts",
+  "baseline_commit": "b50f15e8312db36272c7c2eb500092762473e8b5",
   "files": {
     "alembic/versions/0001_initial.py": {
       "areas": [
@@ -363,6 +341,18 @@
       ],
       "sha256": "8a4d7a09494222378abf7ae0a4f42c60c88e0826fcea2d2880fc3967b3efc0eb"
     },
+    "alembic/versions/0028_static_nspk_qr.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "fb048b8bb069d02a4642a75b1e963756265f415f112984e171f9346e83baee0c"
+    },
+    "alembic/versions/0029_bank_connection_drafts.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "c6aa17fd7642ba1b327d64088554bb5a4efad3e422d3f46c5984ddb756fe80bb"
+    },
     "app/api/deps.py": {
       "areas": [
         "FZ-02"
@@ -373,19 +363,19 @@
       "areas": [
         "FZ-18"
       ],
-      "sha256": "835a0bbaa29fd11361782f643016fb2d85afdac70d97e987cda261e16e76baaf"
+      "sha256": "15a42bb2cc50104c89ff83d21e9254a9c4d902d61ac83f4a7e0fe790323d88b4"
     },
     "app/api/v1/aggregator.py": {
       "areas": [
         "FZ-15"
       ],
-      "sha256": "11c1c2134c7f4d1782ce1f27ef43651257a78b9633084d00aa82f63a1765920b"
+      "sha256": "16d117505683862ed479af6634de7955d1a9928082d82590ad3a82894f47b932"
     },
     "app/api/v1/cabinet.py": {
       "areas": [
         "FZ-18"
       ],
-      "sha256": "c4f01ceeb1771c6759e193877e97af0bbf64e13f58de866e35b12d1e6c630ef5"
+      "sha256": "08fa865a825abf981651ff373921710e6056c73d6ce357cdbfc985b65d902c96"
     },
     "app/api/v1/integration.py": {
       "areas": [
@@ -397,7 +387,7 @@
       "areas": [
         "FZ-04"
       ],
-      "sha256": "25b7908f62f8916472fc357ae30f89179d384c018624d8844332483261aecb10"
+      "sha256": "deb531be2143ce454c8d0dad91ef1cda238ab754076ef248ecaf02d4f5c4aaad"
     },
     "app/api/v1/router.py": {
       "areas": [
@@ -439,13 +429,13 @@
       "areas": [
         "FZ-01"
       ],
-      "sha256": "efd8e7e17040d90e70a00e1720826b8704675c62196f848306bb9db77631f808"
+      "sha256": "e17bafddf30786ad2d34abe0eaeea7669b06e555a037e9019fd2a8969cbf0751"
     },
     "app/core/logging.py": {
       "areas": [
         "FZ-03"
       ],
-      "sha256": "f9654fa1d7bd793c47ee0d6c9290d2d37304cb20e605949228b8675b8fc5489c"
+      "sha256": "c9214b8856ccf6566c17c2959801cbb7ff81afc0e45b1f4489ebef194383caa2"
     },
     "app/core/merchant_hmac.py": {
       "areas": [
@@ -469,7 +459,7 @@
       "areas": [
         "FZ-16"
       ],
-      "sha256": "4a1c0e8f1e55447ed435b1d5d844ba88456ef974929e7c447db954c0c0fdc36a"
+      "sha256": "a21b9b0afe1d84ff81545dc10d7aab249a2df8e76d20edaf0d1a921884288535"
     },
     "app/core/rate_limit.py": {
       "areas": [
@@ -481,7 +471,7 @@
       "areas": [
         "FZ-16"
       ],
-      "sha256": "91de992ab163f34c92a2d5ed5e8614b676a0b5c5fd629576d83414e09901f158"
+      "sha256": "3361141bd53ee5d1017903ead0adf53355ae9a6e6df7c67cceadfaf03926a2e2"
     },
     "app/core/russian_banks.py": {
       "areas": [
@@ -517,19 +507,25 @@
       "areas": [
         "FZ-18"
       ],
-      "sha256": "331ca6328a512c83e18e9297f4087e16fe8767c06f87044318631696bd41d30e"
+      "sha256": "e0ad206b1762e4f8b6d890f171849491ebc72459520519fc123ccc5fd1255596"
     },
     "app/models/__init__.py": {
       "areas": [
         "FZ-01"
       ],
-      "sha256": "e61fc337a3b31d38747fef776c703e5313056eddef6f4c1f23faf251cb2762ab"
+      "sha256": "451e6eb6d94e776934a17de245bc569911fcfd5829ef116e566dd445375fb3a7"
+    },
+    "app/models/bank_connections.py": {
+      "areas": [
+        "FZ-01"
+      ],
+      "sha256": "d0faf044a4e546b4540f5c6c2506105dc81f9551ca64f67b200698e60b47ab20"
     },
     "app/models/entities.py": {
       "areas": [
         "FZ-01"
       ],
-      "sha256": "fc7bd10b8faa582a7d79e3c934ab237ee355c6ea9b4935cc2674b0ca0e1f29a4"
+      "sha256": "6dad8964ee725bc68c79ffca7733bbf7ea0fdbd6e1abd8a682fa837589cb7294"
     },
     "app/models/integration.py": {
       "areas": [
@@ -541,7 +537,7 @@
       "areas": [
         "FZ-03"
       ],
-      "sha256": "1f15c6344e472eabf8b2d5c5c2ef95b72e5264f3ab2853d22922e22509392e44"
+      "sha256": "29b00d86f61ab1e52f29d153cadce54a7b3897d1ea9bea45a9b51c1ec2010d14"
     },
     "app/presentation/tradespace/wallet.py": {
       "areas": [
@@ -553,7 +549,7 @@
       "areas": [
         "FZ-18"
       ],
-      "sha256": "1e187162bb1a47af6472f498c16a5a6a7dc92264373f6424d2a2bf5e73c76deb"
+      "sha256": "570a84b1bad648cb665463d405ded617c4515d5ad3b97f9836b48a0ba13321a2"
     },
     "app/services/aggregator_credentials.py": {
       "areas": [
@@ -572,7 +568,7 @@
         "FZ-04",
         "FZ-15"
       ],
-      "sha256": "347de4219d2866cead974e7481da6477cf9eb6cdb2482691850b95928ba9657b"
+      "sha256": "d81fb9f42b8bf41e5e7cdd946edcd40799d30f79c8f8e8edb2454e86e54299a6"
     },
     "app/services/antiscam.py": {
       "areas": [
@@ -584,7 +580,13 @@
       "areas": [
         "FZ-13"
       ],
-      "sha256": "6e0a68778b4269a091da7ad23280c3df8cd0267636238218dae20bdb8479ebf3"
+      "sha256": "b60f0c973a4eed5039d71c1e4d2c6e08b9a25258e475d8d1aecb64beec42817a"
+    },
+    "app/services/bank_connections.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "f518dcb370b2337dbd20e5f91a0c516ec38cf29ffa28d43095bec8067a25b24c"
     },
     "app/services/compliance.py": {
       "areas": [
@@ -596,13 +598,13 @@
       "areas": [
         "FZ-08"
       ],
-      "sha256": "95a2ebc9f2a963685fe46bb6c694be2c2825e9052b8f7689d3625a719186af76"
+      "sha256": "be558e72a15c73deffdf3d98e9863c6724ba45f3797e66915fc2b1098f46a894"
     },
     "app/services/deposit_lifecycle.py": {
       "areas": [
         "FZ-08"
       ],
-      "sha256": "b26e6bc0476516c8a3f00fe99866388cebccdb2846ba08fa89544b24c360f382"
+      "sha256": "837968941fab7e2e3095f97a3df57c087058491faaa4654f5cd92949ec379bd0"
     },
     "app/services/deposit_ttl.py": {
       "areas": [
@@ -614,7 +616,7 @@
       "areas": [
         "FZ-06"
       ],
-      "sha256": "ea736ddfe3c55111f5538a821d9a23bea51b8ddac910922477d37dab965cc31f"
+      "sha256": "fd5579d988a9c78fb38716ac1311a4c0c5e054bec81c6a374ffae08f5823a0d3"
     },
     "app/services/fees.py": {
       "areas": [
@@ -646,6 +648,12 @@
       ],
       "sha256": "a0c99e13529b4ef1026a61692538c731e29007d867d5d3296c21c36b88cc932c"
     },
+    "app/services/payment_qr.py": {
+      "areas": [
+        "FZ-05"
+      ],
+      "sha256": "25e9db321f54d34ab23d81048a4eff4b32ff8c47c4cbfbb0acca4a34285f59b1"
+    },
     "app/services/payouts.py": {
       "areas": [
         "FZ-09"
@@ -662,13 +670,13 @@
       "areas": [
         "FZ-10"
       ],
-      "sha256": "4f4d9193499b249e5d735da6b4b17a847a0bf68ec086748afa7bb225708a52f8"
+      "sha256": "ae2279e4a4537443679be8b78814d93ad0ba718293845f606cde20c72e3b47f9"
     },
     "app/services/requisites.py": {
       "areas": [
         "FZ-05"
       ],
-      "sha256": "0ed36935a8808eb4ddb6cf12bc790ed27bc2c6df9e20edc7e00e25e1228f6c71"
+      "sha256": "422f7b826b9749ee2203bfc8094a9b7bf4fde31126350972c3b6956bdac0cca0"
     },
     "app/services/risk.py": {
       "areas": [
@@ -686,13 +694,13 @@
       "areas": [
         "FZ-12"
       ],
-      "sha256": "70a7a3e18b2849a83ecea2f1e42fd343e6a7bfb79e8060c5f6e709f6a34e38f9"
+      "sha256": "15e18bff7a7427e38fd7970a4c7f176794feffde14509ca1b9cd338907c87e80"
     },
     "app/services/sms.py": {
       "areas": [
         "FZ-13"
       ],
-      "sha256": "ad70a80477c29d3daa155332268a8ef99313384f499edd4a1becf43ed724a751"
+      "sha256": "c2aef38e8b6462277d1efd25c9fd4f2922553032dea111d16322d0dbba70e007"
     },
     "app/services/teamlead.py": {
       "areas": [
@@ -728,13 +736,25 @@
       "areas": [
         "FZ-03"
       ],
-      "sha256": "89e1fb54543ce26d2baf5c131abf58e8a431a8a2f7ad7fd59de7321a19716a7e"
+      "sha256": "6c95f91fb50d9419e85fd0142ceb5331c19ffbdd6c8c24fba301971a42e3af9d"
+    },
+    "app/web/bank_connections.py": {
+      "areas": [
+        "FZ-03"
+      ],
+      "sha256": "e0e5d5cbcbb96bf1f8cf12e26dfd8053cd51d94c270c1d9286a96fe6a7787165"
+    },
+    "app/web/payment_qr.py": {
+      "areas": [
+        "FZ-18"
+      ],
+      "sha256": "76300a74a346ea2232953d2e7bf2b0d3e7024fa9e1ffb18fb97037e19dbdd5f2"
     },
     "app/web/routes.py": {
       "areas": [
         "FZ-18"
       ],
-      "sha256": "0fa89e57c6518f514919395eadf36bd9dcf2f2bcb286a650ee9908f90a9e3992"
+      "sha256": "7cfaec12145796d22fb43defd82b12377578880b79e8769d3acc96aedce44116"
     },
     "app/workers/celery_app.py": {
       "areas": [

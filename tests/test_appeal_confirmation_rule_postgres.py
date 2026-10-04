@@ -190,7 +190,7 @@ def test_paid_during_dispute_or_second_dispute_cannot_credit_again(monkeypatch,o
     asyncio.run(run())
 
 
-def test_automatic_batch_late_failure_rolls_back_all_finance(monkeypatch):
+def test_manual_appeal_late_failure_rolls_back_all_finance(monkeypatch):
     async def run():
         async with isolated(monkeypatch) as (engine,_,users,_keys),client() as c:
             actor=users['superadmin'];await token_login(c,actor);ids,oid=await operation(engine,actor,c,'merchant');aid=await open_appeal(c,oid)
@@ -203,13 +203,17 @@ def test_automatic_batch_late_failure_rolls_back_all_finance(monkeypatch):
                 raise ValueError('Synthetic late failure after all financial postings')
             monkeypatch.setattr(appeals,'settle_deposit_credit',fail_after_postings)
             async with AsyncSession(engine,expire_on_commit=False) as db:
-                events=await appeals.approve_expired_appeals(db);await db.commit();assert events==[]
+                appeal=await db.get(m.Appeal,aid)
+                with pytest.raises(ValueError,match='Synthetic late failure'):
+                    await appeals.approve_deposit_appeal(db,appeal,actor_id=actor.id)
+                await db.commit()
             assert await snapshot(engine,ids,oid)==before
             async with AsyncSession(engine) as db:
-                appeal=await db.get(m.Appeal,aid);assert appeal.status=='opened' and 'Synthetic late failure' in appeal.metadata_json['auto_approve_error']
+                appeal=await db.get(m.Appeal,aid);assert appeal.status=='opened' and not appeal.metadata_json.get('finance_applied')
             monkeypatch.setattr(appeals,'settle_deposit_credit',real)
             async with AsyncSession(engine) as db:
-                events=await appeals.approve_expired_appeals(db);await db.commit();assert len(events)==1
+                appeal=await db.get(m.Appeal,aid)
+                event=await appeals.approve_deposit_appeal(db,appeal,actor_id=actor.id);await db.commit();assert event
             assert_paid(await snapshot(engine,ids,oid));await reconcile(engine,ids)
     asyncio.run(run())
 
@@ -253,7 +257,7 @@ def test_legacy_gross_hold_debits_saved_net_and_releases_difference(monkeypatch)
     asyncio.run(run())
 
 
-def test_automatic_paid_dispute_with_rolling_changes_no_money_or_events(monkeypatch):
+def test_deadline_escalates_paid_dispute_with_rolling_without_money_or_events(monkeypatch):
     async def run():
         async with isolated(monkeypatch) as (engine,_,users,_keys),client() as c:
             actor=users['superadmin'];await token_login(c,actor);ids,oid=await operation(engine,actor,c,'merchant');await finalize(engine,ids,oid,'paid')
@@ -265,7 +269,7 @@ def test_automatic_paid_dispute_with_rolling_changes_no_money_or_events(monkeypa
                     assert await appeals.approve_expired_appeals(db)==[];await db.commit()
             assert await snapshot(engine,ids,oid)==before
             async with AsyncSession(engine) as db:
-                appeal=await db.get(m.Appeal,aid);assert appeal.status=='approved' and appeal.decision=='approved_auto'
-                assert not appeal.metadata_json['finance_applied']
+                appeal=await db.get(m.Appeal,aid);assert appeal.status=='in_review' and appeal.metadata_json['review_reason']=='response_timeout'
+                assert not appeal.metadata_json.get('finance_applied')
             await reconcile(engine,ids)
     asyncio.run(run())

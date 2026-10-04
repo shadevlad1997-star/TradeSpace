@@ -219,7 +219,10 @@ def test_combined_appeal_teamlead_rolling(monkeypatch, caplog, prior, decision):
                     assert {k: v for k, v in after.items() if k != 'events'} == {k: v for k, v in before.items() if k != 'events'}
                 expected_status = 'paid' if selected == 'approved' else prior
                 new_events = [e for e in after['events'] if e[0] not in {e[0] for e in before['events']}]
-                if prior == 'paid' and selected == 'approved':
+                if prior == 'paid' or (selected != 'approved' and prior in {'cancelled', 'failed', 'expired'}):
+                    # A decision on an unchanged terminal payment is not a new
+                    # payment event. In particular, rejecting a paid claim must
+                    # never report a second deposit.paid to the partner.
                     assert new_events == [] and after == before
                 else:
                     assert len(new_events) == 1 and new_events[0][1:] == (f'deposit.{expected_status}', expected_status)

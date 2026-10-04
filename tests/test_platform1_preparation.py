@@ -116,6 +116,8 @@ def test_freeze_guard_maps_all_areas_and_protected_controller():
     for path in ("app/web/__init__.py", "app/presentation/tradespace/routes.py", "app/presentation/tradespace/wallet.py"):
         assert protected[path]["areas"] == ["FZ-03"]
     assert protected["app/services/requisites.py"]["areas"] == ["FZ-05"]
+    assert protected["app/services/payment_qr.py"]["areas"] == ["FZ-05"]
+    assert protected["app/web/payment_qr.py"]["areas"] == ["FZ-18"]
     assert any(path.startswith("alembic/versions/") for path in protected)
     assert all(row["sha256"] for row in protected.values())
 

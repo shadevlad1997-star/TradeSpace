@@ -43,7 +43,7 @@ ENTRY_LABELS = {
  'release':'Возврат резерва','release_hold':'Освобождение резерва',
  'balance_adjustment':'Корректировка баланса','insurance_deposit_set':'Изменение страхового резерва',
  'deposit_success_debit':'Списание по оплате','accrual_credit':'Зачисление комиссии',
- 'debt_offset':'Погашение долга','accrual_reversal':'Сторно начисления',
+ 'debt_offset':'Погашение долга','accrual_reversal':'Отмена начисления',
  'settlement_freeze':'Резервирование расчёта','settlement_release':'Возврат резерва расчёта',
  'settlement_complete':'Завершение расчёта','manual_adjustment':'Корректировка',
  'write_off':'Списание долга','funding':'Финансирование','topup':'Пополнение Rolling',

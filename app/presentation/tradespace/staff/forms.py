@@ -48,7 +48,9 @@ def requisite_fields(row=None, traders=()):
     from app.web.routes import display_requisite_value
     def val(n,d=''):return getattr(row,n,d)
     result=[choice('method','Способ оплаты',METHODS,val('method','sbp')),
-        field('value','Платёжный реквизит',display_requisite_value(row) if row else ''),
+        field('value','Платёжный реквизит',display_requisite_value(row) if row else '',required=False),
+        field('qr_image','Изображение QR NSPK',kind='file',required=False,hint='Статический QR без суммы. PNG/JPEG до 1 МБ; при редактировании можно оставить прежний файл.'),
+        hidden('qr_existing','true' if row and row.method=='sbp_qr' and row.qr_identity else 'false'),
         choice('bank_code','Банк',[('','Не выбран')]+[(b.code,b.display_name) for b in get_enabled_banks()],val('bank_code'),required=False),
         choice('operator_code','Оператор связи',[('','Не выбран')]+[(b.code,b.display_name) for b in get_enabled_mobile_operators()],val('operator_code'),required=False),
         field('full_name','Получатель',val('full_name')),field('automation_id','ID автоматизации',val('automation_id'),required=False),
@@ -176,7 +178,7 @@ def detail_actions(view,row,actor,*,choices=None,rules=(),api_keys=(),signing_ke
         if kind=='teamlead-settlements' and row.status=='pending':
             forms += [action(f'teamlead/settlements/{row.id}/complete','Подтвердить расчёт TeamLead',[field('tx_hash','Хеш фактической транзакции')],effect='Зарезервированные средства будут списаны. Начнётся период ожидания до следующего запроса.',danger=True),action(f'teamlead/settlements/{row.id}/reject','Отклонить расчёт TeamLead',[reason()],effect='Резерв вернётся на доступный баланс.',danger=True)]
         if kind in {'accruals','merchant-accruals'} and row.status=='credited':
-            forms.append(action(f'teamlead/accruals/{row.deposit_id}/reverse','Сторнировать начисления операции',[reason()],effect='Сторно затрагивает обе referral-стороны этой операции по действующим правилам.',danger=True))
+            forms.append(action(f'teamlead/accruals/{row.deposit_id}/reverse','Отменить начисления операции',[reason()],effect='Отмена затрагивает начисления за трейдера и мерчанта по этой операции согласно действующим правилам.',danger=True))
         if kind=='teamleads':
             forms.append(teamlead_adjust_action(row.teamlead_id))
         if kind=='rolling' and row.status in {'pending_confirmation','disputed'}:

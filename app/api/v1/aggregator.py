@@ -161,7 +161,7 @@ async def get_aggregator_payment(
         await sync_payment_from_deposit(db, dep)
     await log_aggregator_request(db, account, request, 200)
     await db.commit()
-    return {
+    response = {
         'platform_payment_id': str(payment.platform_payment_id),
         'aggregator_order_id': payment.aggregator_order_id,
         'merchant_order_id': payment.merchant_order_id,
@@ -172,6 +172,11 @@ async def get_aggregator_payment(
         'expires_at': payment.expires_at.isoformat(),
         'paid_at': payment.paid_at.isoformat() if payment.paid_at else None,
     }
+    if dep and dep.method == 'sbp_qr':
+        from app.services.payment_qr import payment_details
+        details = payment_details(dep)
+        response.update(payment_method=dep.method, qr=details['qr'])
+    return response
 
 
 @router.post('/payments/{platform_payment_id}/callbacks/retry')

@@ -247,6 +247,9 @@ async def _existing_payout_or_conflict(db: AsyncSession, merchant: Merchant, dat
     return existing
 
 async def _payment_details_for_deposit(db: AsyncSession, dep: Deposit) -> dict | None:
+    if dep.method == 'sbp_qr':
+        from app.services.payment_qr import payment_details
+        return payment_details(dep)
     if not dep.requisites_id:
         return None
     req = (await db.execute(select(Requisite).where(Requisite.id == dep.requisites_id))).scalar_one_or_none()
@@ -320,6 +323,9 @@ async def create_deposit(data: PaymentCreate, request: Request, db: AsyncSession
         await log_req(db, merchant, request, 422)
         await db.commit()
         raise merchant_error(422, 'metadata_callback_url_not_supported')
+    if data.method.value == 'sbp_qr':
+        from app.services.payment_qr import lock_qr_routing
+        await lock_qr_routing(db)
     existing = await _existing_deposit_or_conflict(db, merchant, data, idem, request_fingerprint)
     if existing:
         await log_req(db,merchant,request); await db.commit()
@@ -404,6 +410,8 @@ async def create_deposit(data: PaymentCreate, request: Request, db: AsyncSession
         message = str(exc)
         raise merchant_error(409, _requisite_error_code(message), message)
     dep=Deposit(merchant_id=merchant.id, external_id=data.external_id, idempotency_key=idem, request_fingerprint=request_fingerprint, amount=data.amount, currency=data.currency, method=data.method.value, status=DepositStatus.pending.value, requisites_id=selected_requisite.requisite.id, client_ip=ip, created_at=deposit_created_at, expires_at=new_deposit_expires_at(), metadata_json={**(data.metadata or {}), **selected_requisite.settlement_metadata(), 'risk_score': risk.score, 'risk_reason': risk.reason, 'integration_mode': getattr(request.state, 'merchant_api_key_mode', 'unknown')})
+    from app.services.payment_qr import attach_snapshot
+    attach_snapshot(dep, selected_requisite)
     db.add(dep)
     try:
         await db.flush()
@@ -441,7 +449,7 @@ async def create_deposit(data: PaymentCreate, request: Request, db: AsyncSession
     await record_risk_event(db, merchant_id=merchant.id, operation_type='deposit', operation_id=dep.id, result=risk)
     await log_req(db,merchant,request)
     await db.commit(); await db.refresh(dep)
-    return {'id':dep.id,'external_id':dep.external_id,'status':dep.status,'amount':dep.amount,'method':dep.method,**deposit_ttl_fields(dep),'risk_decision':risk.decision.value,'payment_details':selected_requisite.payment_details(),**await _rolling_fields_for_deposit(db, dep)}
+    return {'id':dep.id,'external_id':dep.external_id,'status':dep.status,'amount':dep.amount,'method':dep.method,**deposit_ttl_fields(dep),'risk_decision':risk.decision.value,'payment_details':(await _payment_details_for_deposit(db, dep) if dep.method == 'sbp_qr' else selected_requisite.payment_details()),**await _rolling_fields_for_deposit(db, dep)}
 
 @router.get('/deposits/{external_id}')
 async def deposit_status(external_id: str, request: Request, db: AsyncSession=Depends(get_db), merchant: Merchant=Depends(merchant_auth)):

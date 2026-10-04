@@ -18,7 +18,7 @@ SUPPORTED_ENTITY_TYPES = {'merchant', 'trader', 'aggregator'}
 SUPPORTED_FEE_SIDES = {'merchant_fee', 'executor_fee'}
 SUPPORTED_CURRENCIES = {'RUB'}
 MAX_RATE_PERCENT = Decimal('100.0000')
-COMMISSION_TIER_METHODS = ('sbp', 'c2c', 'mobile_commerce')
+COMMISSION_TIER_METHODS = ('sbp', 'c2c', 'mobile_commerce', 'sbp_qr')
 COMMISSION_TIER_RANGES = (
     {
         'key': '100_999',

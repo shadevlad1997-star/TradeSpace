@@ -570,6 +570,7 @@ async def _finalize_unsuccessful_deposit(
             reason=reason,
         )
 
+    deposit.qr_reserved = False
     deposit.status = target_status
     finalized_at = utcnow()
     metadata = dict(deposit.metadata_json or {})
@@ -651,6 +652,8 @@ async def finalize_unsuccessful_deposit(
     audit_action: str = 'deposit_finalized_unsuccessfully',
 ) -> DepositFinalizationResult:
     """Ordinary lifecycle: releasing a real trader hold remains mandatory."""
+    if deposit.status == DepositStatus.appeal_opened.value:
+        raise ValueError('active appeal requires administrative review')
     return await _finalize_unsuccessful_deposit(
         db,
         deposit,

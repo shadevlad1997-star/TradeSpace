@@ -3,13 +3,6 @@
 {% from "tradespace/merchant/_components.html" import page_header %}
 {% block content %}
 {{ page_header('', 'API и Webhooks', '', merchant.integration_state.label, 'attention' if merchant.sandbox_mode else 'positive') }}
-<section class="ts-section-block" aria-label="Режим интеграции">
-<h2>Режим интеграции: {{ merchant.integration_state.label }}</h2>
-<p>Sandbox и Production работают в отдельных окружениях. API-ключи, Webhook-подписи, операции и балансы между ними не переносятся.</p>
-{% if merchant.integration_state.status != 'active' %}<h3>Подключение Production</h3><p>Активацию подтверждает Superadmin после проверки настроек и разрешения владельца.</p>
-{% if merchant.integration_state.blocking_reasons %}<ul>{% for item in merchant.integration_state.blocking_reasons %}<li>{{ item.message }}</li>{% endfor %}</ul>{% else %}<p>Настройки готовы. Обратитесь к Superadmin для подтверждения активации.</p>{% endif %}{% endif %}
-<p>Ключи ниже действуют только в указанном для них режиме и только в своём окружении. Наличие Production-ключа не означает активацию.</p>
-</section>
 <div class="ts-integration-grid">
   <section class="ts-section-block"><h2>Настройка Webhook</h2>
     <form class="ts-stacked-form" method="post" action="{{ cabinet_base }}/merchants/{{ merchant.merchant_id }}/integration" data-submit-once>

@@ -104,6 +104,7 @@ class PayoutStatus(StrEnum):
 
 
 class PaymentMethod(StrEnum):
+    sbp_qr = 'sbp_qr'
     sbp = 'sbp'
     c2c = 'c2c'
     mobile_commerce = 'mobile_commerce'

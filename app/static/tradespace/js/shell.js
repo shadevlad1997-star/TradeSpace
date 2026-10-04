@@ -1,6 +1,55 @@
 (() => {
   "use strict";
 
+  // Presentation only. The server remains authoritative for method validation.
+  document.querySelectorAll(".ts-requisite-form, [data-requisite-form]").forEach((form) => {
+    const method = form.querySelector("select[name='method']");
+    if (!method) return;
+    const groups = {
+      value: ["sbp", "c2c", "mobile_commerce"],
+      qr_mode: ["sbp_qr"], qr_image: ["sbp_qr"], bank_code: ["sbp", "c2c", "sbp_qr"],
+      operator_code: ["mobile_commerce"], last4: ["c2c"],
+      automation_id: ["sbp", "c2c", "mobile_commerce"]
+    };
+    const update = () => {
+      const qr = method.value === "sbp_qr";
+      const saved = form.querySelector("[data-qr-existing]")?.dataset.qrExisting === "true"
+        || form.querySelector("input[name='qr_existing']")?.value === "true";
+      Object.entries(groups).forEach(([name, methods]) => {
+        const field = form.elements.namedItem(name);
+        if (!field) return;
+        const visible = methods.includes(method.value);
+        field.closest("label").hidden = !visible;
+        field.disabled = !visible;
+        field.required = visible && (["value", "bank_code", "operator_code"].includes(name)
+          || (name === "qr_image" && !saved));
+      });
+      const owner = form.elements.namedItem("full_name");
+      if (owner) owner.required = qr;
+    };
+    const preview = form.querySelector('[data-qr-preview]');
+    const image = form.elements.namedItem('qr_image');
+    let generation = 0;
+    image?.addEventListener('change', async () => {
+      const current = ++generation;
+      if (!preview) return;
+      preview.hidden = !image.files.length;
+      if (preview.hidden) return;
+      preview.textContent = 'Проверяем QR…';
+      const body = new FormData(form);
+      try {
+        const prefix = new URL(form.action).pathname.split('/requisites')[0];
+        const response = await fetch(prefix + '/requisites/qr-preview', {method: 'POST', body, credentials: 'same-origin'});
+        const result = await response.json();
+        if (current === generation) preview.textContent = result.message || 'Не удалось проверить QR.';
+      } catch (_) {
+        if (current === generation) preview.textContent = 'Не удалось проверить QR. Проверка повторится при сохранении.';
+      }
+    });
+    method.addEventListener("change", () => {generation++; if (preview) preview.hidden = true; update();});
+    update();
+  });
+
   const mobileSheet = document.getElementById("mobile-more-sheet");
   const mobileToggle = document.querySelector("[data-mobile-more]");
   const closeMobileSheet = () => {

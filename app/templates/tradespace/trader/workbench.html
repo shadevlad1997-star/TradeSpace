@@ -34,6 +34,7 @@
         <div><a href="{{ cabinet_base }}" class="ts-back-link">← К очереди</a><p class="ts-kicker">Операция {{ op.short_id }}</p><h2>{{ money_value(op.amount, op.currency) }}</h2></div>
         <div>{{ status_badge(op.status_label, op.status_tone) }}{% if op.remaining_seconds > 0 %}{{ countdown(op.remaining_seconds, op.expires_at) }}{% endif %}</div>
       </header>
+      {% if op.qr_image_url %}<section class="ts-work-section"><img src="{{ op.qr_image_url }}" alt="Выданный QR NSPK" width="240" height="240" class="ts-payment-qr"><p>Подтвердите оплату только после проверки поступления {{ op.amount }} RUB в банке.</p></section>{% endif %}
       <div class="ts-fact-grid">
         <div><span>Способ</span><strong>{{ op.method_label }}</strong><small>{{ op.provider_name or '—' }}</small></div>
         <div><span>Реквизит</span><strong class="ts-sensitive-value">{{ op.requisite or '—' }}</strong><small>{{ op.recipient_name or '—' }}</small></div>

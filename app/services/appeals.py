@@ -211,6 +211,41 @@ async def _lock_deposit_then_appeal(
     return dep, locked_appeal
 
 
+async def _require_appeal_actor(db, dep, appeal, actor_id, *, final_rejection=False):
+    actor = await db.get(User, actor_id) if actor_id else None
+    if not actor or not actor.is_active or actor.is_archived or actor.is_locked:
+        raise ValueError('active appeal actor required')
+    if actor.role in {Role.admin.value, Role.superadmin.value}:
+        return actor
+    owner = await db.scalar(select(Requisite.trader_id).where(Requisite.id == dep.requisites_id))
+    if (not final_rejection and actor.role in {Role.trader.value, Role.operator.value}
+            and owner == actor.id and appeal.status == AppealStatus.opened.value):
+        return actor
+    raise ValueError('appeal action requires assigned trader or administrative review')
+
+
+async def refer_appeal_to_staff(db, appeal, *, actor_id, response, actor_ip=None):
+    """A trader response, never a financial or final appeal decision."""
+    dep, appeal = await _lock_deposit_then_appeal(db, appeal)
+    actor = await _require_appeal_actor(db, dep, appeal, actor_id)
+    if actor.role not in {Role.trader.value, Role.operator.value} or appeal.status != AppealStatus.opened.value:
+        raise ValueError('appeal has already been referred or resolved')
+    reason = response.get('trader_rejection_reason')
+    if reason not in TRADER_REJECTION_REASONS:
+        raise ValueError('invalid trader response reason')
+    response = {**response, 'trader_decision': 'rejected',
+                'trader_decision_by': str(actor.id), 'trader_decision_at': utcnow().isoformat(),
+                'review_required': True, 'review_reason': 'trader_payment_not_found'}
+    set_metadata(appeal, **response)
+    appeal.status = AppealStatus.in_review.value
+    appeal.decision = 'trader_rejected'  # Historical persisted code means escalation, not final rejection.
+    db.add(AppealMessage(appeal_id=appeal.id, author_id=actor.id,
+        message='Платёж не найден. Передано администрации: ' + TRADER_REJECTION_REASONS[reason]))
+    await audit(db, 'trader_appeal_referred', 'appeal', actor.id, appeal.id, actor_ip,
+                {'reason': reason, 'deposit_id': str(dep.id), 'status': appeal.status})
+    return appeal
+
+
 async def approve_deposit_appeal(db: AsyncSession, appeal: Appeal, *, actor_id=None, automatic: bool = False) -> object | None:
     # A background batch catches business errors and continues. Keep EACH
     # resolution atomic even when the caller does not roll back the batch.
@@ -222,6 +257,9 @@ async def _approve_deposit_appeal(db: AsyncSession, appeal: Appeal, *, actor_id=
     if appeal.operation_type != 'deposit':
         raise ValueError('only deposit appeals can be approved from cabinet')
     dep, appeal = await _lock_deposit_then_appeal(db, appeal)
+    if automatic:
+        raise ValueError('Спор требует ручного решения; таймер передаёт его администрации')
+    await _require_appeal_actor(db, dep, appeal, actor_id)
     if appeal.status not in {
         AppealStatus.opened.value,
         AppealStatus.in_review.value,
@@ -256,6 +294,7 @@ async def _approve_deposit_appeal(db: AsyncSession, appeal: Appeal, *, actor_id=
         settlement = await settle_deposit_credit(db, merchant_id=dep.merchant_id, method=dep.method,
             amount=dep.amount, operation_id=dep.id, description='appeal approved deposit confirmation')
         await check_payment_result_for_risk(db, dep)
+    dep.qr_reserved = False
     dep.status = DepositStatus.paid.value
     appeal.status = AppealStatus.approved.value
     appeal.decision = 'approved_auto' if automatic else 'approved'
@@ -295,8 +334,12 @@ async def reject_deposit_appeal(db: AsyncSession, appeal: Appeal, *, actor_id, d
         AppealStatus.in_review.value,
     }:
         raise ValueError('appeal has already been resolved')
+    await _require_appeal_actor(db, dep, appeal, actor_id, final_rejection=True)
     meta = metadata(appeal)
-    previous_status = meta.get('previous_deposit_status') or DepositStatus.failed.value
+    previous_status = meta.get('previous_deposit_status')
+    if previous_status not in {'created','pending','paid','failed','expired','cancelled'}:
+        raise ValueError('appeal previous operation state is missing; manual review required')
+    old_status = dep.status
     if dep.status == DepositStatus.appeal_opened.value:
         dep.status = previous_status if previous_status != DepositStatus.appeal_opened.value else DepositStatus.failed.value
         await check_payment_result_for_risk(db, dep)
@@ -306,32 +349,32 @@ async def reject_deposit_appeal(db: AsyncSession, appeal: Appeal, *, actor_id, d
     db.add(AppealMessage(appeal_id=appeal.id, author_id=actor_id, message='Апелляция отклонена.'))
     await db.flush()
     await db.refresh(dep)
+    await audit(db, 'deposit_appeal_rejected', 'appeal', actor_id, appeal.id, details={'deposit_id': str(dep.id), 'status': dep.status})
+    if old_status == dep.status or dep.status == DepositStatus.paid.value:
+        return None  # A rejected claim must not impersonate a new paid outcome.
+    await sync_payment_from_deposit(db, dep)
     return await queue_webhook(db, dep.merchant_id, f'deposit.{dep.status}', deposit_payload(dep, appeal))
 
 
 async def approve_expired_appeals(db: AsyncSession) -> list:
-    rows = (await db.execute(
-        select(Appeal)
-        .where(Appeal.status == AppealStatus.opened.value)
-        .order_by(Appeal.created_at.asc())
-        .limit(200)
-    )).scalars().all()
-    events = []
-    now = utcnow()
-    for appeal in rows:
-        meta = metadata(appeal)
-        if meta.get('trader_decision'):
+    """Compatibility entry point for the existing job: deadlines now escalate only."""
+    rows = (await db.execute(select(Appeal).where(
+        Appeal.status == AppealStatus.opened.value, Appeal.operation_type == 'deposit'
+    ).order_by(Appeal.created_at.asc()).limit(200))).scalars().all()
+    for candidate in rows:
+        if appeal_deadline(candidate) > utcnow():
             continue
-        if appeal_deadline(appeal) > now:
+        dep, appeal = await _lock_deposit_then_appeal(db, candidate)
+        if appeal.status != AppealStatus.opened.value or appeal_deadline(appeal) > utcnow():
             continue
-        try:
-            event = await approve_deposit_appeal(db, appeal, automatic=True)
-        except ValueError as exc:
-            set_metadata(appeal, auto_approve_error=str(exc), auto_approve_failed_at=now.isoformat())
-            continue
-        if event:
-            events.append(event)
-    return events
+        appeal.status = AppealStatus.in_review.value
+        set_metadata(appeal, review_required=True, review_reason='response_timeout',
+                     escalated_at=utcnow().isoformat())
+        db.add(AppealMessage(appeal_id=appeal.id, author_id=None,
+                            message='Срок ответа истёк. Спор передан администрации.'))
+        await audit(db, 'appeal_deadline_escalated', 'appeal', None, appeal.id,
+                    details={'deposit_id':str(dep.id), 'status':'in_review'})
+    return []  # No financial outcome or final partner event.
 
 
 async def resolve_operation_appeal(db: AsyncSession, appeal: Appeal, *, status: str, actor_id, decision: str):
