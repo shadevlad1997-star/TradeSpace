@@ -1,0 +1,40 @@
+{% extends "tradespace/layouts/app.html" %}
+{% from "tradespace/components/ui.html" import status_badge, empty_state %}
+{% from "tradespace/trader/_components.html" import page_header %}
+{% block extra_head %}<link rel="stylesheet" href="/static/tradespace/css/bank-connections.css?v=2">{% endblock %}
+{% block content %}
+{{ page_header('', 'Интеграция с банком', '') }}
+{% set base = cabinet_base ~ '/tradespace/bank-integrations' %}
+{% if notice %}<p class="ts-feedback" role="status">{{ notice }}</p>{% endif %}
+{% if values is not none %}
+<section class="ts-section-block ts-bank-form-panel">
+  <h2>{{ 'Изменить подключение' if values.id else 'Добавить банк' }}</h2>
+  <p>Подключение станет доступно после получения доступа от банка.</p>
+  {% if draft_error %}<p class="ts-feedback ts-feedback--validation" role="alert" id="draft-error">{{ draft_error }}</p>{% endif %}
+  <form class="ts-bank-form" method="post" action="{{ cabinet_base }}/bank-integrations/{{ values.id ~ '/edit' if values.id else 'create' }}" data-submit-once{% if draft_error %} aria-describedby="draft-error"{% endif %}>
+    {{ csrf_input(request) }}
+    <label class="ts-field"><span class="ts-field__label" id="bank-label">Банк</span><select class="ts-input" name="bank_code" aria-labelledby="bank-label" required>{% for bank in banks %}<option value="{{ bank.code }}"{% if values.bank_code == bank.code %} selected{% endif %}>{{ bank.display_name }}</option>{% endfor %}</select></label>
+    <label class="ts-field"><span class="ts-field__label">Название подключения</span><input class="ts-input" name="name" value="{{ values.name }}" maxlength="120" required autocomplete="off"></label>
+    <label class="ts-field"><span class="ts-field__label" id="requisite-label">Реквизит QR NSPK (необязательно)</span><select class="ts-input" name="requisite_id" aria-labelledby="requisite-label" aria-describedby="requisite-hint"><option value="">Без привязки</option>{% for req in requisite_choices %}<option value="{{ req.id }}"{% if values.requisite_id == req.id %} selected{% endif %}>{{ req.label }}</option>{% endfor %}</select><span class="ts-field__hint" id="requisite-hint">Выберите реквизит того же банка. Привязка не меняет работу статического QR.</span></label>
+    <div class="ts-bank-actions"><button type="submit" class="ts-button ts-button--primary">Сохранить черновик</button><a href="{{ base }}" class="ts-button ts-button--secondary">Отмена</a></div>
+  </form>
+</section>
+{% else %}
+<div class="ts-page-actions ts-bank-page-actions"><a class="ts-button ts-button--primary" href="{{ base }}?new=1">Добавить банк</a></div>
+{% if not drafts %}{{ empty_state('Банки пока не подключены', 'Подключение станет доступно после получения доступа от банка', 'integration') }}{% endif %}
+{% endif %}
+{% if drafts %}<section class="ts-bank-grid" aria-label="Черновики подключений">
+{% for draft in drafts %}
+<article class="ts-section-block ts-bank-card">
+  <header><div><span class="ts-kicker">{{ bank_labels[draft.bank_code] }}</span><h2>{{ draft.name }}</h2></div>{{ status_badge('Не подключён') }}</header>
+  <p>Подключение станет доступно после получения доступа от банка</p>
+  <dl><dt>Реквизит QR NSPK</dt><dd>{{ linked_labels.get(draft.requisite_id|string, 'Привязанный реквизит недоступен') if draft.requisite_id else 'Без привязки' }}</dd></dl>
+  <footer class="ts-bank-actions"><a class="ts-button ts-button--secondary" href="{{ base }}?edit={{ draft.id }}">Изменить</a><button class="ts-button ts-button--danger-quiet" type="button" data-dialog-open="delete-bank-{{ draft.id }}">Удалить черновик</button></footer>
+</article>
+<dialog class="ts-dialog" id="delete-bank-{{ draft.id }}">
+  <div class="ts-dialog__header"><h2>Удалить черновик?</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+  <p>Черновик «{{ draft.name }}» будет удалён. Реквизит, QR и история операций сохранятся.</p>
+  <form method="post" action="{{ cabinet_base }}/bank-integrations/{{ draft.id }}/delete" data-submit-once>{{ csrf_input(request) }}<div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button type="submit" class="ts-button ts-button--danger">Удалить черновик</button></div></form>
+</dialog>
+{% endfor %}</section>{% endif %}
+{% endblock %}

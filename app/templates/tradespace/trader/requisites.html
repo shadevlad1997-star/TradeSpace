@@ -10,6 +10,7 @@
     <header><div><span class="ts-kicker">{{ req.method_label }}</span><h2>{{ req.provider_name or 'Провайдер не указан' }}</h2></div>{{ status_badge(req.status_label, req.status_tone) }}</header>
     <div class="ts-requisite-value"><code>{{ req.value }}</code><button class="ts-inline-copy" type="button" data-copy-value="{{ req.value }}">Копировать</button></div>
     <p>{{ req.owner_name or 'Владелец не указан' }} · {{ req.traffic_label }}</p>
+    {% if req.qr_description %}<p class="ts-form-note">{{ req.qr_description }}</p>{% endif %}
     <dl>
       <div><dt>Чек</dt><dd>{{ money_value(req.min_check, 'RUB') }} — {{ money_value(req.max_check, 'RUB') }}</dd></div>
       <div><dt>Суточный лимит</dt><dd>{{ money_value(req.daily_limit, 'RUB') }}</dd></div>
@@ -17,14 +18,14 @@
       <div><dt>Использований</dt><dd>{{ req.usage_count }}</dd></div>
     </dl>
     <footer>
-      <form method="post" action="{{ req.toggle_url }}" data-submit-once>{{ csrf_input(request) }}<button class="ts-button ts-button--secondary" type="submit">{{ 'Отключить' if req.enabled else 'Включить' }}</button></form>
+      <form method="post" action="{{ req.toggle_url }}" data-submit-once>{{ csrf_input(request) }}<button class="ts-button ts-button--secondary" type="submit" {% if not req.enabled and not req.can_activate %}disabled{% endif %}>{{ 'Отключить' if req.enabled else 'Включить' }}</button></form>
       <button class="ts-button ts-button--quiet" type="button" data-dialog-open="edit-{{ req.id }}">Изменить</button>
       <button class="ts-button ts-button--danger-quiet" type="button" data-dialog-open="delete-{{ req.id }}">Удалить</button>
     </footer>
   </article>
   <dialog class="ts-dialog ts-dialog--wide" id="edit-{{ req.id }}">
     <div class="ts-dialog__header"><h2>Изменить реквизит</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
-    <form method="post" action="{{ req.edit_url }}" class="ts-requisite-form" data-submit-once>{{ csrf_input(request) }}
+    <form method="post" action="{{ req.edit_url }}" class="ts-requisite-form" enctype="multipart/form-data" data-submit-once>{{ csrf_input(request) }}
       {% include "tradespace/trader/_requisite_fields.html" %}
       <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Сохранить</button></div>
     </form>
@@ -39,7 +40,7 @@
 
 <dialog class="ts-dialog ts-dialog--wide" id="create-requisite">
   <div class="ts-dialog__header"><h2>Новый реквизит</h2><button type="button" class="ts-icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
-  <form method="post" action="{{ cabinet_base }}/requisites/create" class="ts-requisite-form" data-submit-once>{{ csrf_input(request) }}
+  <form method="post" action="{{ cabinet_base }}/requisites/create" class="ts-requisite-form" enctype="multipart/form-data" data-submit-once>{{ csrf_input(request) }}
     {% set req = none %}{% include "tradespace/trader/_requisite_fields.html" %}
     <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Отмена</button><button class="ts-button ts-button--primary" type="submit">Добавить</button></div>
   </form>

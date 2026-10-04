@@ -1,6 +1,8 @@
-<div class="ts-form-grid">
+<div class="ts-form-grid" data-requisite-fields data-qr-existing="{{ 'true' if req and req.method == 'sbp_qr' else 'false' }}">
   <label><span>Способ</span><select name="method" required>{% for method in trader.payment_methods %}<option value="{{ method.value }}" {% if req and req.method == method.value %}selected{% endif %}>{{ method.label }}</option>{% endfor %}</select></label>
-  <label><span>Реквизит</span><input name="value" value="{{ req.value if req else '' }}" maxlength="255" required autocomplete="off"></label>
+  <label><span>Реквизит</span><input name="value" value="{{ req.value if req else '' }}" maxlength="512" autocomplete="off"></label>
+  <label><span>Получение QR NSPK</span><select name="qr_mode"><option value="static">Статический QR</option><option value="dynamic" disabled>Динамический QR через банк — недоступен</option></select><small>Динамический QR станет доступен после подключения банковского API. Черновик подключения не активирует его.</small></label>
+  <label><span>Изображение QR NSPK</span><input type="file" name="qr_image" accept="image/png,image/jpeg"><small>PNG/JPEG до 1 МБ. Для короткой ссылки используется указанный вами статический тип. Банковская проверка типа не выполняется. При редактировании оставьте файл пустым, чтобы сохранить QR.</small></label>
   <label><span>Банк</span><select name="bank_code"><option value="">Не выбран / мобильный оператор</option>{% for bank in trader.banks %}<option value="{{ bank.code }}" {% if req and req.bank_code == bank.code %}selected{% endif %}>{{ bank.label }}</option>{% endfor %}</select></label>
   <label><span>Мобильный оператор</span><select name="operator_code"><option value="">Не выбран</option>{% for operator in trader.operators %}<option value="{{ operator.code }}" {% if req and req.operator_code == operator.code %}selected{% endif %}>{{ operator.label }}</option>{% endfor %}</select></label>
   <input type="hidden" name="bank_name" value="{{ req.provider_name if req else '' }}">
@@ -16,5 +18,6 @@
   <label><span>Минимальный чек, RUB</span><input name="min_check" value="{{ req.min_check if req else '100.00' }}" type="number" min="1" step="0.01"></label>
   <label><span>Максимальный чек, RUB</span><input name="max_check" value="{{ req.max_check if req else '150000.00' }}" type="number" min="1" step="0.01"></label>
   <label><span>Статус</span><select name="status"><option value="active" {% if not req or req.status == 'active' %}selected{% endif %}>Активен</option><option value="disabled" {% if req and req.status == 'disabled' %}selected{% endif %}>Отключён</option><option value="review" {% if req and req.status == 'review' %}selected{% endif %}>На проверке</option></select></label>
+  <output class="ts-form-note" data-qr-preview aria-live="polite" hidden></output>
 </div>
-<p class="ts-form-note">Для СБП/карты выберите банк. Для мобильной коммерции выберите оператора.</p>
+<p class="ts-form-note">Для СБП, карты и QR NSPK выберите банк. Для мобильной коммерции выберите оператора.</p>

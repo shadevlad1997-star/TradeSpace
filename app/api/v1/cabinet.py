@@ -101,6 +101,11 @@ async def sms(data: SmsIn, db: AsyncSession=Depends(get_db), user: User=Depends(
 async def create_appeal(data: AppealIn, db: AsyncSession=Depends(get_db), user: User=Depends(current_user)):
     operation_type = data.operation_type.strip().lower()
     operation = await _operation_visible_to_user(db, user, operation_type, data.operation_id)
+    model = Deposit if operation_type == 'deposit' else Payout
+    operation = await db.scalar(select(model).where(model.id == operation.id).with_for_update().execution_options(populate_existing=True))
+    duplicate = await db.scalar(select(Appeal.id).where(Appeal.operation_type == operation_type, Appeal.operation_id == operation.id, Appeal.status.in_(['opened','in_review'])).limit(1))
+    if duplicate:
+        raise HTTPException(409, 'active appeal already exists')
     final_statuses = {
         DepositStatus.paid.value,
         DepositStatus.failed.value,

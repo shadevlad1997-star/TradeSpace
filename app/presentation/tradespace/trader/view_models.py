@@ -62,7 +62,7 @@ _STATUS_LABELS = {
 }
 _APPEAL_LABELS = {
     AppealStatus.opened.value: ("Нужен ответ", "attention"),
-    AppealStatus.in_review.value: ("На проверке", "attention"),
+    AppealStatus.in_review.value: ("Проверка администрации", "attention"),
     AppealStatus.approved.value: ("Одобрен", "positive"),
     AppealStatus.rejected.value: ("Отклонён", "critical"),
     AppealStatus.returned_to_processing.value: ("Возвращён в работу", "neutral"),
@@ -166,6 +166,7 @@ class TraderOperationView:
     def reserve_label(self):
         return {'released': 'Резерв освобождён', 'settled': 'Резерв списан'}.get(self.hold_status, 'Текущий резерв')
 
+    qr_image_url: str = ""
     has_appeal: bool = False
     appeal_status: str = ""
     sms_evidence: tuple[TraderSmsView, ...] = ()
@@ -204,6 +205,8 @@ class TraderRequisiteView:
     toggle_url: str
     edit_url: str
     delete_url: str
+    qr_description: str = ""
+    can_activate: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -359,10 +362,11 @@ def _operation_view(
         status_label=status_label,
         status_tone=status_tone,
         reason=reason,
-        requisite=display_requisite_value(requisite) if requisite else "",
+        requisite=(deposit.qr_snapshot or {}).get("requisite", display_requisite_value(requisite) if requisite else ""),
+        qr_image_url=f"/pay/qr/{deposit.qr_token}/image" if deposit.qr_token and remaining > 0 and deposit.status in {"created", "pending"} else "",
         provider_label=requisite_provider_label(requisite.method) if requisite else "Провайдер",
-        provider_name=provider_name,
-        recipient_name=(requisite.full_name or requisite.owner_name or "") if requisite else "",
+        provider_name=(deposit.qr_snapshot or {}).get("bank", provider_name),
+        recipient_name=(deposit.qr_snapshot or {}).get("receiver_name", (requisite.full_name or requisite.owner_name or "") if requisite else ""),
         created_at=deposit.created_at,
         updated_at=deposit.updated_at,
         expires_at=deadline,
@@ -372,6 +376,7 @@ def _operation_view(
             requisite
             and str(requisite.trader_id) == str(trader.id)
             and deposit.status in DEPOSIT_ACTIVE_STATUSES
+            and (deposit.method != "sbp_qr" or remaining > 0)
             and active_appeal is None
         ),
         trader_hold=_money(deposit_trader_hold_amount(deposit, trader)),
@@ -392,7 +397,21 @@ def _requisite_view(row: Requisite, *, cabinet_base: str) -> TraderRequisiteView
 
     label, tone = _REQUISITE_LABELS.get(str(row.status), ("Статус не определён", "neutral"))
     available = bool(row.enabled and row.status == "active" and row.traffic_status in {"active", "reinstated_full"})
+    qr_description = ""
+    can_activate = True
+    if row.method == 'sbp_qr':
+        from app.core.security import reveal_text
+        from app.services.payment_qr import validate_payload, QrValidationError
+        try:
+            qr = validate_payload(reveal_text(row.value_encrypted), declared_static=True)
+            qr_description = 'Статический QR · тип указан трейдером' if qr.type_source == 'trader_selection' else 'Статический QR · свободная сумма'
+        except QrValidationError as exc:
+            qr_description = str(exc)
+            can_activate = False
+            available = False
     return TraderRequisiteView(
+        qr_description=qr_description,
+        can_activate=can_activate,
         id=str(row.id),
         value=display_requisite_value(row),
         method=str(row.method),
@@ -426,13 +445,25 @@ def _requisite_view(row: Requisite, *, cabinet_base: str) -> TraderRequisiteView
     )
 
 
-async def _own_requisites(db: AsyncSession, trader_id: UUID) -> list[Requisite]:
+async def _own_requisites(
+    db: AsyncSession,
+    trader_id: UUID,
+    *,
+    include_deleted: bool = False,
+) -> list[Requisite]:
+    statement = select(Requisite).where(
+        Requisite.trader_id == trader_id,
+        Requisite.is_archived.is_(False),
+    )
+    if not include_deleted:
+        statement = statement.where(Requisite.status != "deleted")
     return list(
         (
             await db.execute(
-                select(Requisite)
-                .where(Requisite.trader_id == trader_id, Requisite.is_archived.is_(False))
-                .order_by(Requisite.enabled.desc(), Requisite.created_at.desc())
+                statement.order_by(
+                    Requisite.enabled.desc(),
+                    Requisite.created_at.desc(),
+                )
             )
         )
         .scalars()
@@ -499,7 +530,8 @@ async def load_operations(
         trader_deposit_scope,
     )
 
-    requisites = await _own_requisites(db, trader.id)
+    requisites = await _own_requisites(db, trader.id, include_deleted=True)
+    visible_requisites = [row for row in requisites if row.status != "deleted"]
     normalized_params = dict(query_params)
     normalized_params["view"] = view
     filters = normalized_deposit_filters(
@@ -536,7 +568,7 @@ async def load_operations(
         for row in deposits
     )
     aggregates = await trader_deposit_aggregates(db, requisite_ids=requisite_ids)
-    return rows, requisites, filters, aggregates
+    return rows, visible_requisites, filters, aggregates
 
 
 async def load_operation_detail(
@@ -546,7 +578,7 @@ async def load_operation_detail(
     cabinet_base: str,
     operation_id: UUID,
 ) -> TraderOperationView | None:
-    requisites = await _own_requisites(db, trader.id)
+    requisites = await _own_requisites(db, trader.id, include_deleted=True)
     req_by_id = {row.id: row for row in requisites}
     if not req_by_id:
         return None
@@ -575,7 +607,7 @@ async def load_operation_detail(
 async def load_appeals(db: AsyncSession, trader: User, *, cabinet_base: str) -> tuple[TraderAppealView, ...]:
     from app.web.routes import display_requisite_value
 
-    requisites = await _own_requisites(db, trader.id)
+    requisites = await _own_requisites(db, trader.id, include_deleted=True)
     req_by_id = {row.id: row for row in requisites}
     if not req_by_id:
         return ()
@@ -719,7 +751,7 @@ async def load_ledger(db: AsyncSession, trader_id: UUID, *, limit: int = 200) ->
 
 
 async def load_analytics(db: AsyncSession, trader: User) -> TraderAnalytics:
-    requisites = await _own_requisites(db, trader.id)
+    requisites = await _own_requisites(db, trader.id, include_deleted=True)
     if not requisites:
         return TraderAnalytics(0, 0, 0, "0.00", "0.00", "—", ())
     deposits = list(

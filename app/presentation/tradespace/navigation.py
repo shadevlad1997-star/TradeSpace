@@ -103,6 +103,10 @@ def profile_for_role(role: str) -> RealmProfile:
 
 def navigation_for_role(role: str) -> tuple[NavigationItem, ...]:
     navigation = profile_for_role(role).navigation
+    if role == "trader":
+        navigation = navigation[:3] + (NavigationItem(
+            "bank-integrations", "Интеграция с банком", "Банки", "", "integration",
+        ),) + navigation[3:]
     if any(item.slug == "notifications" for item in navigation):
         return navigation
     return navigation + (NOTIFICATIONS_ITEM,)

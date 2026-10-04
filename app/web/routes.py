@@ -1808,8 +1808,27 @@ async def cabinet_regenerate_aggregator_secret(request: Request, aggregator_id: 
         confirmation=str(form.get('confirmation','')), reason=str(form.get('reason','')), key_id=key_id, db=db)
 
 
+@router.post('/cabinet/requisites/qr-preview')
+async def preview_requisite_qr(request: Request, qr_image: UploadFile = File(...), db: AsyncSession = Depends(get_db), qr_mode: str = Form("static")):
+    from fastapi.responses import JSONResponse
+    from starlette.concurrency import run_in_threadpool
+    from app.services.payment_qr import decode_image, MAX_UPLOAD_BYTES, QrValidationError
+    user = await get_current_web_user(request, db)
+    if not user or staff_2fa_setup_required(user) or user.role not in [Role.operator.value, Role.trader.value, Role.admin.value, Role.superadmin.value]:
+        return JSONResponse({'message': 'Недостаточно прав.'}, status_code=403)
+    if qr_mode != 'static':
+        return JSONResponse({'code': 'qr_bank_unavailable', 'message': 'Динамический QR недоступен: банковская интеграция ещё не подключена.'}, status_code=422)
+    try:
+        qr = await run_in_threadpool(decode_image, await qr_image.read(MAX_UPLOAD_BYTES + 1), declared_static=True)
+    except QrValidationError as exc:
+        return JSONResponse({'code': exc.code, 'message': str(exc)}, status_code=422)
+    declared = qr.type_source == 'trader_selection'
+    return JSONResponse({'code': 'qr_static_declared' if declared else 'qr_static_valid', 'qr_type': qr.qr_type, 'qr_type_source': qr.type_source,
+        'message': 'QR прочитан. Статический тип указан вами. Банковская проверка типа не выполнялась.' if declared else 'Распознан статический QR со свободной суммой. Клиент вводит сумму в банковском приложении.'})
+
+
 @router.post('/cabinet/requisites/create')
-async def create_requisite(request: Request, method: str = Form(...), value: str = Form(...), bank_code: str = Form(""), operator_code: str = Form(""), bank_name: str = Form(""), full_name: str = Form(""), automation_id: str = Form(""), last4: str = Form(""), daily_limit: str = Form("500000"), operation_limit: int = Form(50), request_count: int = Form(10), timeframe: str = Form("час"), success_delay_minutes: int = Form(0), simultaneous_limit: int = Form(1), min_check: str = Form("100"), max_check: str = Form("150000"), status: str = Form("active"), trader_id: str | None = Form(None), db: AsyncSession = Depends(get_db)):
+async def create_requisite(request: Request, method: str = Form(...), value: str = Form(""), bank_code: str = Form(""), operator_code: str = Form(""), bank_name: str = Form(""), full_name: str = Form(""), automation_id: str = Form(""), last4: str = Form(""), daily_limit: str = Form("500000"), operation_limit: int = Form(50), request_count: int = Form(10), timeframe: str = Form("час"), success_delay_minutes: int = Form(0), simultaneous_limit: int = Form(1), min_check: str = Form("100"), max_check: str = Form("150000"), status: str = Form("active"), trader_id: str | None = Form(None), db: AsyncSession = Depends(get_db), qr_image: UploadFile | None = File(None), qr_mode: str = Form("static")):
     user = await get_current_web_user(request, db)
     if not user:
         return RedirectResponse('/login', status_code=303)
@@ -1826,13 +1845,29 @@ async def create_requisite(request: Request, method: str = Form(...), value: str
     if not target_trader_id:
         return _redirect('trader_required', 'requisites')
     normalized_method = normalize_payment_method(method, canonical_mobile=True)
-    if normalized_method not in {PaymentMethod.sbp.value, PaymentMethod.c2c.value, PaymentMethod.mobile_commerce.value}:
+    if normalized_method not in {PaymentMethod.sbp.value, PaymentMethod.sbp_qr.value, PaymentMethod.c2c.value, PaymentMethod.mobile_commerce.value}:
         return _redirect('payment_method_invalid', 'requisites')
     provider = resolve_requisite_provider(normalized_method, bank_code=bank_code, operator_code=operator_code, bank_name=bank_name)
     if not provider:
         code = 'mobile_operator_required' if normalized_method == PaymentMethod.mobile_commerce.value else 'bank_required'
         return _redirect(code, 'requisites')
+    from app.services.payment_qr import uploaded_qr, QrValidationError, qr_audit_details
+    qr = None
+    if normalized_method == 'sbp_qr':
+        if qr_mode != 'static':
+            return _redirect('Динамический QR недоступен: банковская интеграция ещё не подключена.', 'requisites')
+        if not full_name.strip():
+            return _redirect('Укажите получателя QR', 'requisites')
+        try:
+            qr = await uploaded_qr(qr_image, declared_static=True)
+        except QrValidationError as exc:
+            return _redirect(str(exc), 'requisites')
+        value = qr.payload
+        automation_id = last4 = ''
+    elif not value.strip():
+        return _redirect('Укажите реквизит', 'requisites')
     req = Requisite(
+        qr_identity=qr.identity if qr else None,
         trader_id=target_trader_id,
         owner_name=full_name or user.email,
         full_name=full_name or None,
@@ -1855,7 +1890,8 @@ async def create_requisite(request: Request, method: str = Form(...), value: str
         enabled=status == 'active',
     )
     db.add(req)
-    await audit(db, 'requisite_created', 'requisite', actor_id=user.id, ip=client_ip(request), details={"method": normalized_method, "provider_type": provider.provider_type, "provider_name": provider.display_name, "timeframe": timeframe, "success_delay_minutes": success_delay_minutes, "simultaneous_limit": simultaneous_limit})
+    await db.flush()
+    await audit(db, 'requisite_created', 'requisite', actor_id=user.id, target_id=str(req.id), ip=client_ip(request), details={**qr_audit_details(qr), "method": normalized_method, "provider_type": provider.provider_type, "provider_name": provider.display_name, "timeframe": timeframe, "success_delay_minutes": success_delay_minutes, "simultaneous_limit": simultaneous_limit})
     await db.commit()
     return _success_redirect('requisites')
 
@@ -1876,9 +1912,18 @@ async def toggle_requisite(request: Request, requisite_id: str, db: AsyncSession
         return _redirect('requisite_scope_denied', 'requisites')
     if req.status == 'deleted':
         return _redirect('requisite_deleted', 'requisites')
+    qr_details = {}
+    if not req.enabled and req.method == 'sbp_qr':
+        from app.services.payment_qr import validate_payload, QrValidationError, qr_audit_details
+        from app.core.security import reveal_text
+        try:
+            qr = validate_payload(reveal_text(req.value_encrypted), declared_static=True)
+            qr_details = qr_audit_details(qr)
+        except QrValidationError as exc:
+            return _redirect(str(exc), 'requisites')
     req.enabled = not req.enabled
     req.status = 'active' if req.enabled else 'disabled'
-    await audit(db, 'requisite_toggled', 'requisite', actor_id=user.id, target_id=str(req.id), ip=client_ip(request), details={'enabled': req.enabled})
+    await audit(db, 'requisite_toggled', 'requisite', actor_id=user.id, target_id=str(req.id), ip=client_ip(request), details={'enabled': req.enabled, **qr_details})
     await db.commit()
     return _success_redirect('requisites')
 
@@ -1888,7 +1933,7 @@ async def edit_requisite(
     request: Request,
     requisite_id: str,
     method: str = Form(...),
-    value: str = Form(...),
+    value: str = Form(""),
     bank_code: str = Form(""),
     operator_code: str = Form(""),
     bank_name: str = Form(""),
@@ -1904,6 +1949,8 @@ async def edit_requisite(
     min_check: str = Form("100"),
     max_check: str = Form("150000"),
     status: str = Form("active"),
+    qr_image: UploadFile | None = File(None),
+    qr_mode: str = Form("static"),
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_current_web_user(request, db)
@@ -1911,13 +1958,13 @@ async def edit_requisite(
         return RedirectResponse('/login', status_code=303)
     if staff_2fa_setup_required(user):
         return _twofa_redirect()
-    req = (await db.execute(select(Requisite).where(Requisite.id == uuid.UUID(requisite_id)))).scalar_one_or_none()
+    req = (await db.execute(select(Requisite).where(Requisite.id == uuid.UUID(requisite_id)).with_for_update())).scalar_one_or_none()
     if not req:
         return _redirect('requisite_not_found', 'requisites')
     if not _can_manage_requisite(user, req):
         return _redirect('requisite_scope_denied', 'requisites')
     normalized_method = normalize_payment_method(method, canonical_mobile=True)
-    if normalized_method not in {PaymentMethod.sbp.value, PaymentMethod.c2c.value, PaymentMethod.mobile_commerce.value}:
+    if normalized_method not in {PaymentMethod.sbp.value, PaymentMethod.sbp_qr.value, PaymentMethod.c2c.value, PaymentMethod.mobile_commerce.value}:
         return _redirect('payment_method_invalid', 'requisites')
     legacy_candidate = (bank_name or bank_code or operator_code or '').strip()
     provider = resolve_requisite_provider(
@@ -1930,6 +1977,22 @@ async def edit_requisite(
     if not provider:
         code = 'mobile_operator_required' if normalized_method == PaymentMethod.mobile_commerce.value else 'bank_required'
         return _redirect(code, 'requisites')
+    from app.services.payment_qr import uploaded_qr, QrValidationError, qr_audit_details
+    qr = None
+    if normalized_method == 'sbp_qr':
+        if qr_mode != 'static':
+            return _redirect('Динамический QR недоступен: банковская интеграция ещё не подключена.', 'requisites')
+        if not full_name.strip():
+            return _redirect('Укажите получателя QR', 'requisites')
+        try:
+            qr = await uploaded_qr(qr_image, existing=req, declared_static=True)
+        except QrValidationError as exc:
+            return _redirect(str(exc), 'requisites')
+        value = qr.payload
+        automation_id = last4 = ''
+    elif not value.strip():
+        return _redirect('Укажите реквизит', 'requisites')
+    req.qr_identity = qr.identity if qr else None
     req.method = normalized_method
     req.value_encrypted = encrypt_secret(value.strip())
     req.owner_name = full_name.strip() or user.email
@@ -1949,7 +2012,7 @@ async def edit_requisite(
     req.max_check = min(Decimal('1000000.00'), safe_decimal(max_check, '150000'))
     req.status = status if status in ['active', 'disabled', 'review'] else 'active'
     req.enabled = req.status == 'active'
-    await audit(db, 'requisite_updated', 'requisite', actor_id=user.id, target_id=str(req.id), ip=client_ip(request))
+    await audit(db, 'requisite_updated', 'requisite', actor_id=user.id, target_id=str(req.id), ip=client_ip(request), details=qr_audit_details(qr))
     await db.commit()
     return _success_redirect('requisites')
 
@@ -2183,6 +2246,8 @@ async def cabinet_decline_deposit(
     )).scalar_one_or_none()
     if not dep:
         return _redirect('deposit_not_found', 'deposits')
+    if dep.status == DepositStatus.appeal_opened.value:
+        raise HTTPException(409, 'Решение по заявке принимается в споре')
     result = await finalize_unsuccessful_deposit(
         db,
         dep,
@@ -2355,7 +2420,7 @@ async def cabinet_trader_reject_appeal(
     except ValueError:
         return _redirect('Апелляция не найдена', 'appeals')
     appeal = (await db.execute(
-        select(Appeal).where(Appeal.id == appeal_uuid).with_for_update()
+        select(Appeal).where(Appeal.id == appeal_uuid)
     )).scalar_one_or_none()
     if not appeal or not await _appeal_visible_to_user(db, user, appeal):
         return _redirect('Апелляция не найдена', 'appeals')
@@ -2379,13 +2444,14 @@ async def cabinet_trader_reject_appeal(
             meta_update['statement_file'] = await save_appeal_upload(statement_file, required=True)
         except ValueError as exc:
             return _redirect('Для причины отсутствия платежа нужна выписка: ' + str(exc), 'appeals')
-    set_appeal_metadata(appeal, **meta_update)
-    appeal.status = AppealStatus.in_review.value
-    appeal.decision = 'trader_rejected'
-    db.add(AppealMessage(appeal_id=appeal.id, author_id=user.id, message='Трейдер отклонил апелляцию: ' + TRADER_REJECTION_REASONS[reason]))
-    await audit(db, 'trader_appeal_rejected', 'appeal', user.id, appeal.id, client_ip(request), {'reason': reason})
+    from app.services.appeals import refer_appeal_to_staff
+    try:
+        await refer_appeal_to_staff(db, appeal, actor_id=user.id, response=meta_update, actor_ip=client_ip(request))
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(409, str(exc)) from exc
     await db.commit()
-    return _redirect('Апелляция отправлена на решение admin/superadmin', 'appeals')
+    return _redirect('Платёж не найден. Спор передан администрации', 'appeals')
 
 
 @router.post('/cabinet/appeals/{appeal_id}/extend')
@@ -2482,12 +2548,15 @@ async def cabinet_usdt_rub_rate(request: Request, db: AsyncSession = Depends(get
                 return JSONResponse(
                     {'detail': exc.code, 'code': exc.code},
                     status_code=503,
+                    headers={'Cache-Control': 'no-store, max-age=0', 'Retry-After': '20'},
                 )
-            return {
+            return JSONResponse({
                 'rate_rub': str(quote['rate_rub']),
                 'rate_source': quote['rate_source'],
                 'source': quote['rate_source'],
                 'updated_at': quote.get('rate_updated_at').isoformat() if quote.get('rate_updated_at') else None,
+                'fetched_at': quote.get('rate_fetched_at').isoformat() if quote.get('rate_fetched_at') else None,
+                'valid_for_seconds': quote.get('rate_valid_for_seconds', 0),
                 'stale': bool(quote.get('rate_stale')),
                 'fee_usdt': str(quote['fee_usdt']),
                 'fee_rub': str(quote['fee_rub']),
@@ -2495,7 +2564,7 @@ async def cabinet_usdt_rub_rate(request: Request, db: AsyncSession = Depends(get
                 'pending_rub': str(quote['pending_rub']),
                 'max_request_usdt': str(quote['max_request_usdt']),
                 'cache_seconds': settings.RAPIRA_RATES_CACHE_SECONDS,
-            }
+            }, headers={'Cache-Control': 'no-store, max-age=0'})
     rate_quote = await get_rapira_rub_usdt_quote()
     rate_source = f'{rate_quote.source} stale' if rate_quote.stale else rate_quote.source
     return {
@@ -3812,14 +3881,12 @@ COMMISSION_ENTITY_SECTIONS = {
 
 
 def _commission_tier_redirect(entity_type: str, entity_id: UUID, message: str) -> RedirectResponse:
-    section = COMMISSION_ENTITY_SECTIONS[entity_type]
-    selected = f'{entity_type}:{entity_id}'
     return RedirectResponse(
         cabinet_redirect_url(
             '/cabinet',
             message=message,
-            section=section,
-            extra={'commission_entity': selected},
+            section='network',
+            extra={'tab': FEE_ENTITY_ROUTE_SEGMENTS[entity_type], 'id': str(entity_id)},
         ),
         status_code=303,
     )

@@ -15,7 +15,7 @@ SUFFIXES={'.py','.html','.css','.js','.svg','.png','.ico','.woff2','.mako','.yml
 def release_files(root=ROOT):
     paths=[root/name for name in ROOT_FILES]+[root/'scripts'/name for name in SCRIPTS]
     for folder in ('app','alembic','branding','monitoring'):
-        paths += [p for p in (root/folder).rglob('*') if p.is_file() and (p.suffix in SUFFIXES or (p.parent == root/'app/static' and p.name.endswith(('.LICENSE.txt','.NOTICE.txt'))))
+        paths += [p for p in (root/folder).rglob('*') if p.is_file() and p.suffix in SUFFIXES
                   and '__pycache__' not in p.parts and not any(part.startswith('.') for part in p.relative_to(root).parts)]
     paths += [root/'nginx'/'production.conf']
     paths += list((root/'docs').glob('*.md'))

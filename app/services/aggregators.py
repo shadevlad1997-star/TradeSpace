@@ -446,6 +446,10 @@ async def create_payment(
     if fail_url:
         fail_url = validate_public_webhook_url(fail_url)
 
+    if payment_method == 'sbp_qr':
+        from app.services.payment_qr import lock_qr_routing
+        await lock_qr_routing(db)
+
     existing = await _existing_aggregator_result(
         db,
         aggregator=aggregator,
@@ -539,6 +543,8 @@ async def create_payment(
             'fail_url': fail_url,
         },
     )
+    from app.services.payment_qr import attach_snapshot
+    attach_snapshot(dep, selected)
     db.add(dep)
     try:
         await db.flush()
@@ -626,6 +632,9 @@ async def payment_response(db: AsyncSession, result: AggregatorPaymentResult) ->
     if dep.requisites_id:
         req = (await db.execute(select(Requisite).where(Requisite.id == dep.requisites_id))).scalar_one_or_none()
     details = result.selected_requisite.payment_details() if result.selected_requisite else payment_details_from_requisite(req, dep)
+    if dep.method == 'sbp_qr':
+        from app.services.payment_qr import payment_details
+        details = payment_details(dep)
     return {
         'status': 'success',
         'platform_payment_id': str(payment.platform_payment_id),
@@ -634,6 +643,7 @@ async def payment_response(db: AsyncSession, result: AggregatorPaymentResult) ->
         'amount': str(money(payment.amount)),
         'currency': payment.currency,
         'payment_method': payment.payment_method,
+        **({'qr': details['qr']} if details and 'qr' in details else {}),
         'requisites': {
             'type': details.get('method') if details else payment.payment_method,
             'method_label': details.get('method_label') if details else payment_method_label(payment.payment_method),

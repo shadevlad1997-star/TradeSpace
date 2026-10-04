@@ -795,8 +795,11 @@ async def add_appeal_message(appeal_id: UUID, data: AppealMessageIn, request: Re
     if not appeal: raise HTTPException(404,'appeal not found')
     if not await can_message_appeal(db, actor, appeal):
         raise HTTPException(404, 'appeal not found')
+    if appeal.operation_type == 'deposit':
+        from app.services.appeals import _lock_deposit_then_appeal
+        _, appeal = await _lock_deposit_then_appeal(db, appeal)
     msg=AppealMessage(appeal_id=appeal.id, author_id=actor.id, message=data.message, attachment_path=data.attachment_path)
-    appeal.status=AppealStatus.in_review.value if actor.role in [Role.superadmin.value, Role.admin.value, Role.support.value] else appeal.status
+    appeal.status=AppealStatus.in_review.value if actor.role in [Role.superadmin.value, Role.admin.value, Role.support.value] and appeal.status in {'opened','in_review'} else appeal.status
     db.add(msg)
     await audit(db,'appeal_message_added','appeal',actor.id,appeal.id,client_ip(request))
     await db.commit(); await db.refresh(msg)

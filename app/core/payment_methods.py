@@ -4,6 +4,7 @@ from app.core.enums import PaymentMethod
 
 
 PAYMENT_METHOD_LABELS: dict[str, str] = {
+    PaymentMethod.sbp_qr.value: 'QR NSPK',
     PaymentMethod.sbp.value: 'СБП',
     PaymentMethod.c2c.value: 'Карта',
     PaymentMethod.mobile_commerce.value: 'Мобильная коммерция',
@@ -14,6 +15,7 @@ PAYMENT_METHOD_OPTIONS: tuple[dict[str, str], ...] = (
     {'value': PaymentMethod.sbp.value, 'label': PAYMENT_METHOD_LABELS[PaymentMethod.sbp.value]},
     {'value': PaymentMethod.c2c.value, 'label': PAYMENT_METHOD_LABELS[PaymentMethod.c2c.value]},
     {'value': PaymentMethod.mobile_commerce.value, 'label': PAYMENT_METHOD_LABELS[PaymentMethod.mobile_commerce.value]},
+    {'value': PaymentMethod.sbp_qr.value, 'label': 'QR NSPK'},
 )
 
 PAYMENT_METHOD_REQUISITE_PLACEHOLDERS: dict[str, str] = {
@@ -29,6 +31,7 @@ PAYMENT_METHOD_ALIASES: dict[str, str] = {
     'bank_transfer': PaymentMethod.c2c.value,
     'c2c': PaymentMethod.c2c.value,
     'sbp': PaymentMethod.sbp.value,
+    'sbp_qr': PaymentMethod.sbp_qr.value,
     'mobile': PaymentMethod.mobile.value,
     'mobile_commerce': PaymentMethod.mobile_commerce.value,
     'mobile-commerce': PaymentMethod.mobile_commerce.value,

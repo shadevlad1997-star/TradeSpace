@@ -9,7 +9,7 @@ from scripts import qa_reset
 
 def test_release_artifact_excludes_runtime_secrets_and_qa_even_when_present(tmp_path):
     root=tmp_path/'source';root.mkdir()
-    safe=['app/main.py','app/templates/page.html','app/static/swagger-ui.LICENSE.txt','app/static/swagger-ui.NOTICE.txt','app/static/swagger-ui-bundle.js.LICENSE.txt','app/static/normalize.LICENSE.txt','app/static/tradespace/icon.svg','scripts/bootstrap_superadmin.py','requirements.lock','docs/CLEAN_SERVER_START.md']
+    safe=['app/main.py','app/templates/page.html','app/static/tradespace/icon.svg','scripts/bootstrap_superadmin.py','requirements.lock','docs/CLEAN_SERVER_START.md']
     unsafe=['.env','run/access.json','uploads/evidence.png','logs/error.log','backup.dump','scripts/qa_seed.py','scripts/qa_reset.py','tests/test_example.py','app/__pycache__/secret.py','app/.env']
     for name in safe+unsafe:
         p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('safe' if name in safe else 'canary-do-not-package',encoding='utf8')

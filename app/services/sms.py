@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Deposit, SmsMessage
+from app.models import Appeal, Deposit, SmsMessage
 from app.core.enums import DepositStatus
 from app.services.fees import settle_deposit_credit
 from app.services.antiscam import check_payment_result_for_risk
@@ -141,8 +141,12 @@ async def confirm_deposit_from_sms(
 ):
     dep = (await db.execute(select(Deposit).where(Deposit.id == deposit_id).with_for_update())).scalar_one_or_none()
     sms = (await db.execute(select(SmsMessage).where(SmsMessage.id == sms_id).with_for_update())).scalar_one_or_none()
+    if dep and dep.method == 'sbp_qr':
+        raise ValueError('QR NSPK подтверждается вручную трейдером, без SMS')
     if not sms or not dep:
         raise LookupError('sms or deposit not found')
+    if dep.status == 'appeal_opened' or await db.scalar(select(Appeal.id).where(Appeal.operation_type == 'deposit', Appeal.operation_id == dep.id, Appeal.status.in_(['opened','in_review'])).limit(1)):
+        raise ValueError('Решение по заявке принимается в споре')
     if sms.processed and sms.linked_deposit_id:
         if sms.linked_deposit_id == dep.id:
             return sms, dep, False, None

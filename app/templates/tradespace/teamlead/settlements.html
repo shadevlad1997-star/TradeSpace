@@ -3,7 +3,7 @@
 {% from "tradespace/teamlead/_components.html" import header, balance_band, money %}
 {% block content %}
 {{ header('','Расчёты','') }}
-{{ balance_band(lead) }}
+{{ balance_band(lead, cabinet_base) }}
 <div class="ts-settlement-layout"><section class="ts-settlement-request"><span class="ts-kicker">Новый запрос</span><h2>Получить USDT</h2>
 <p>Комиссия {{ lead.settlement_fee }} USDT взимается сверх запрошенной суммы. RUB-эквивалент и комиссия резервируются по актуальному курсу ask Rapira в момент отправки.</p>
 {% for reason in lead.request_blockers %}{{ attention_panel('Запрос сейчас недоступен',reason) }}{% endfor %}
@@ -19,7 +19,7 @@
 <p class="ts-note">Это запрос на обработку, а не подтверждение отправки средств. Итоговый курс и RUB-резерв появятся в истории.</p>
 <div class="ts-dialog__actions"><button type="button" class="ts-button ts-button--secondary" data-dialog-close>Назад</button><button class="ts-button ts-button--primary" type="submit">Создать запрос</button></div></dialog>
 </form>{% endif %}</section>
-<aside class="ts-settlement-rules"><span class="ts-kicker">Условия обработки</span><h2>Ваши средства</h2><ul><li>Непогашенный долг блокирует новый запрос.</li><li>Одновременно может существовать один запрос на рассмотрении.</li><li>После выполнения действует пауза {{ lead.cooldown_hours }} часов.</li><li>При отклонении резерв возвращается в доступные средства.</li><li>Выполнение и отклонение доступны суперадминистратору.</li></ul><dl class="ts-definition-list"><div><dt>Выплачено без комиссии</dt><dd>{{ money(lead.balance.total_paid_rub if lead.balance else none) }}</dd></div></dl></aside></div>
+<aside class="ts-settlement-rules"><span class="ts-kicker">Условия обработки</span><h2>Ваши средства</h2><ul><li>Одновременно может существовать один запрос на рассмотрении.</li><li>После выполнения действует пауза {{ lead.cooldown_hours }} часов.</li><li>При отклонении резерв возвращается в доступные средства.</li></ul><dl class="ts-definition-list"><div><dt>Выплачено без комиссии</dt><dd>{{ money(lead.balance.total_paid_rub if lead.balance else none) }}</dd></div></dl></aside></div>
 <section class="ts-section-block"><div class="ts-panel-heading"><div><span class="ts-kicker">История</span><h2>Запросы расчёта</h2></div><span>Последние {{ lead.settlements|length }}</span></div>
 {% if lead.settlements %}<div class="ts-tl-settlements">{% for row in lead.settlements %}<details class="ts-tl-settlement"><summary>
 <div>{{ status_badge(row.status_label,row.tone) }}<strong>{{ row.short_id }}</strong><small>{{ row.requested_at|dt_compact }}</small></div>
@@ -31,5 +31,5 @@
 {% if row.provider_timestamp %}<div><dt>Время провайдера</dt><dd>{{ row.provider_timestamp|dt_compact }} UTC</dd></div>{% endif %}
 {% if row.completed_at %}<div><dt>Выполнен</dt><dd>{{ row.completed_at|dt_compact }} UTC</dd></div>{% endif %}{% if row.rejected_at %}<div><dt>Отклонён</dt><dd>{{ row.rejected_at|dt_compact }} UTC</dd></div>{% endif %}
 </dl></div></details>{% endfor %}</div>{% else %}{{ empty_state('Запросов ещё нет','История появится после первого запроса. Автоматические выплаты не запланированы.','settlement') }}{% endif %}</section>
-<script defer src="/static/tradespace/js/teamlead.js?v=1"></script>
+<script defer src="/static/tradespace/js/teamlead.js?v=2"></script>
 {% endblock %}

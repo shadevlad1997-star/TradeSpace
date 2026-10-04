@@ -158,13 +158,14 @@ class AggregatorPaymentCreate(BaseModel):
             'card_number': 'c2c',
             'bank_transfer': 'c2c',
             'sbp': 'sbp',
+            'sbp_qr': 'sbp_qr',
             'c2c': 'c2c',
             'mobile': 'mobile_commerce',
             'mobile_commerce': 'mobile_commerce',
             'other': 'c2c',
         }
         if value not in mapping:
-            raise ValueError('payment_method must be card, card_number, sbp, bank_transfer, c2c, mobile, mobile_commerce, or other')
+            raise ValueError('payment_method must be card, card_number, sbp, sbp_qr, bank_transfer, c2c, mobile, mobile_commerce, or other')
         return mapping[value]
 
     @field_validator('callback_url', 'success_url', 'fail_url')
@@ -214,6 +215,13 @@ class PaymentCreate(BaseModel):
         return value
 
 class PayoutCreate(PaymentCreate):
+    @field_validator('method')
+    @classmethod
+    def exclude_collection_only_methods(cls, value):
+        if value == PaymentMethod.sbp_qr:
+            raise ValueError('QR NSPK доступен только для приёма платежей')
+        return value
+
     destination: str = Field(min_length=3, max_length=255)
 
 class OperationOut(BaseModel):

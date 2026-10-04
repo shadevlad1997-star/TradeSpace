@@ -22,7 +22,7 @@
       <div class="ts-panel-heading"><div><span class="ts-kicker">Финансовый снимок</span><h2>Расчёт мерчанта</h2></div></div>
       <dl class="ts-definition-list">
         <div><dt>Сумма платежа</dt><dd>{{ money_value(op.amount, op.currency) }}</dd></div>
-        <div><dt>Комиссия</dt><dd>{{ money_value(op.fee_amount, op.currency) }} <small>{{ op.fee_percent }}%</small></dd></div>
+        <div><dt>Комиссия платформы</dt><dd>{{ money_value(op.fee_amount, op.currency) }} <small>{{ op.fee_percent }}%</small></dd></div>
         <div><dt>К зачислению</dt><dd>{{ money_value(op.payable_amount, op.currency) }}</dd></div>
       </dl>
 

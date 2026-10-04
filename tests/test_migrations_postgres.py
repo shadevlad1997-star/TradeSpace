@@ -671,7 +671,7 @@ def test_postgres_v2_clean_0017_to_0018_to_0019_downgrade_and_reupgrade():
         with psycopg.connect(database_url) as db:
             assert db.execute(
                 'SELECT version_num FROM alembic_version'
-            ).fetchone()[0] == '0027_aggregator_credentials'
+            ).fetchone()[0] == '0029_bank_connection_drafts'
     finally:
         with psycopg.connect(admin_url, autocommit=True) as admin:
             admin.execute(
@@ -1947,7 +1947,7 @@ def test_postgres_0025_preserves_existing_teamlead_finance_and_guards_activity()
         with psycopg.connect(database_url) as db:
             assert db.execute(
                 'SELECT version_num FROM alembic_version'
-            ).fetchone()[0] == '0027_aggregator_credentials'
+            ).fetchone()[0] == '0029_bank_connection_drafts'
             after = db.execute(
                 """
                 SELECT
@@ -2014,7 +2014,7 @@ def test_postgres_0025_preserves_existing_teamlead_finance_and_guards_activity()
         with psycopg.connect(database_url) as db:
             assert db.execute(
                 'SELECT version_num FROM alembic_version'
-            ).fetchone()[0] == '0027_aggregator_credentials'
+            ).fetchone()[0] == '0029_bank_connection_drafts'
     finally:
         with psycopg.connect(admin_url, autocommit=True) as admin:
             admin.execute(

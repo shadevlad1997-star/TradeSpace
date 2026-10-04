@@ -14,8 +14,6 @@
 !app/**/*.png
 !app/**/*.ico
 !app/**/*.woff2
-!app/static/*.LICENSE.txt
-!app/static/*.NOTICE.txt
 !alembic/
 !alembic/**/
 !alembic/**/*.py

@@ -2,7 +2,7 @@
 {% from "tradespace/components/ui.html" import status_badge, empty_state %}
 {% from "tradespace/teamlead/_components.html" import header, accrual_records %}
 {% block content %}
-{{ header('Сеть назначений','Команда','Трейдеры и мерчанты, назначенные вам сейчас или ранее.') }}
+{{ header('Сеть назначений','Команда','') }}
 <form class="ts-filter-bar" method="get"><label><span>Поиск участника</span><input name="q" value="{{ lead.filters.q }}" placeholder="Email, название или ID"></label>
 <label><span>Тип</span><select name="kind"><option value="">Все участники</option><option value="trader"{% if lead.filters.kind == 'trader' %} selected{% endif %}>Трейдеры</option><option value="merchant"{% if lead.filters.kind == 'merchant' %} selected{% endif %}>Мерчанты</option></select></label>
 <label><span>Назначение</span><select name="status"><option value="">Вся история</option><option value="active"{% if lead.filters.status == 'active' %} selected{% endif %}>Незакрытое</option><option value="closed"{% if lead.filters.status == 'closed' %} selected{% endif %}>Закрытое</option></select></label>

@@ -94,6 +94,7 @@ def test_wave1_router_adds_get_views_without_new_business_commands():
         "tradespace_trader_operation",
         "tradespace_legacy_fallback",
         "tradespace_aggregator_secret",
+        "tradespace_teamlead_estimate",
     }
     assert all(set(route.methods or ()) <= {"GET", "HEAD"} for route in presentation)
     assert next(route for route in legacy_routes.router.routes if route.name == "change_password").methods == {"POST"}

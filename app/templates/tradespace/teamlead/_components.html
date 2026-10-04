@@ -1,10 +1,10 @@
 {% from "tradespace/components/ui.html" import money_value, status_badge, empty_state %}
 {% macro money(value, currency='RUB') %}{% if value is not none %}{{ money_value(value,currency) }}{% else %}<span class="ts-muted">Нет данных</span>{% endif %}{% endmacro %}
 {% macro header(kicker,title,description) %}<header class="ts-workspace-header"><div>{% if kicker %}<span class="ts-kicker">{{ kicker }}</span>{% endif %}<h1>{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</div></header>{% endmacro %}
-{% macro balance_band(lead) %}<section class="ts-tl-balance" aria-label="Финансовый счёт TeamLead">
-{% for key,label,note in [('available_rub','Доступно для расчёта','Средства TeamLead'),('frozen_rub','Зарезервировано','По запросу на рассмотрении'),('debt_rub','Долг к погашению','Погашается начислениями')] %}
-<div><span>{{ label }}</span>{{ money(lead.balance[key] if lead.balance else none) }}<small>{{ note }}</small></div>{% endfor %}
-</section>{% endmacro %}
+{% macro balance_band(lead, cabinet_base) %}<section class="ts-tl-balance" aria-label="Финансовый счёт TeamLead">
+{% for key,label in [('available_rub','Доступно для расчёта'),('frozen_rub','Зарезервировано'),('debt_rub','Долг к погашению')] %}
+<div><span>{{ label }}</span>{{ money(lead.balance[key] if lead.balance else none) }}{% if key == 'available_rub' %}<small class="ts-tl-balance__estimate" data-teamlead-estimate data-estimate-url="{{ cabinet_base }}/tradespace/teamlead-estimate">USDT: курс недоступен</small>{% endif %}</div>{% endfor %}
+</section><script defer src="/static/tradespace/js/teamlead-estimate.js?v=1"></script>{% endmacro %}
 {% macro accrual_records(rows,empty=True) %}
 {% if rows %}<div class="ts-tl-statement" data-component="TeamLeadAccrualStatement">
 <div class="ts-tl-statement__head" aria-hidden="true"><span>Основание</span><span>Начисление</span><span>Распределение</span><span>Состояние</span></div>
@@ -15,9 +15,9 @@
 <div>{{ status_badge(r.status_label,r.tone) }}<small>Подробности ↓</small></div>
 </summary><div class="ts-tl-record__detail"><dl class="ts-definition-list">
 <div><dt>ID начисления</dt><dd><code>{{ r.id }}</code></dd></div><div><dt>ID операции — основание</dt><dd><code>{{ r.deposit_id }}</code></dd></div>
-{% if r.reversed_at %}<div><dt>Сторнировано</dt><dd>{{ r.reversed_at|dt_compact }} UTC</dd></div>{% endif %}
+{% if r.reversed_at %}<div><dt>Отменено</dt><dd>{{ r.reversed_at|dt_compact }} UTC</dd></div>{% endif %}
 {% if r.reason %}<div><dt>Причина</dt><dd>{{ r.reason }}</dd></div>{% endif %}</dl>
-<p class="ts-note">Указана база реферального начисления. Две записи разных источников могут относиться к одной операции. Это не общий оборот команды. При сторно исходное распределение сохраняется в истории.</p>
+<p class="ts-note">Указана база реферального начисления. Две записи разных источников могут относиться к одной операции. Это не общий оборот команды. При отмене начисления исходное распределение сохраняется в истории.</p>
 </div></details>{% endfor %}</div>
 {% elif empty %}{{ empty_state('Начислений не найдено','Измените фильтры или дождитесь оплаченных операций по вашим назначениям.','wallet') }}{% endif %}
 {% endmacro %}

@@ -27,6 +27,8 @@ COUNTED_DEPOSIT_STATUSES = ACTIVE_DEPOSIT_STATUSES + [DepositStatus.paid.value]
 
 def deposit_method_candidates(method: str | None) -> list[str]:
     normalized = normalize_payment_method(method, canonical_mobile=True) or ''
+    if normalized == PaymentMethod.sbp_qr.value:
+        return [PaymentMethod.sbp_qr.value]
     if normalized == PaymentMethod.sbp.value:
         return [PaymentMethod.sbp.value]
     if normalized == PaymentMethod.c2c.value:
@@ -324,6 +326,10 @@ async def select_deposit_requisite(
         raise ValueError('payment method is not supported for player deposits')
     method = method_candidates[0]
 
+    if method == 'sbp_qr':
+        from app.services.payment_qr import lock_qr_routing
+        await lock_qr_routing(db)
+
     candidates = (await db.execute(
         select(Requisite)
         .where(
@@ -370,6 +376,16 @@ async def select_deposit_requisite(
     amount = _money(amount)
     last_fee_error: FeeConfigurationError | None = None
     for req in candidates:
+        if method == 'sbp_qr':
+            from app.services.payment_qr import qr_is_available, validate_payload, QrValidationError
+            # Saved sbp_qr requisites use the declared static-upload mode.
+            # Explicit contradictions remain ineligible before collateral.
+            try:
+                verified = validate_payload(reveal_text(req.value_encrypted), declared_static=True)
+            except QrValidationError:
+                continue
+            if verified.identity != req.qr_identity or not await qr_is_available(db, req.qr_identity, amount):
+                continue
         if not resolve_requisite_provider(req.method, bank_code=req.bank_code, operator_code=req.operator_code, bank_name=req.bank_name, allow_legacy=True):
             continue
 

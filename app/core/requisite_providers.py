@@ -30,7 +30,7 @@ def resolve_requisite_provider(
     operator_code = (operator_code or '').strip() or None
     bank_name = (bank_name or '').strip() or None
 
-    if normalized_method in {PaymentMethod.sbp.value, PaymentMethod.c2c.value}:
+    if normalized_method in {PaymentMethod.sbp.value, PaymentMethod.sbp_qr.value, PaymentMethod.c2c.value}:
         bank = find_bank(bank_code or bank_name)
         if bank and bank.enabled:
             return RequisiteProvider('bank', bank.code, None, bank.display_name)
@@ -75,7 +75,7 @@ def requisite_provider_display(method: str | None, bank_code: str | None, operat
                 return operator.display_name
         return get_mobile_operator_display_name(bank_name)
 
-    if is_sbp_method(method) or is_card_method(method):
+    if is_sbp_method(method) or is_card_method(method) or method == PaymentMethod.sbp_qr.value:
         if bank_code:
             bank = find_bank_by_code(bank_code)
             if bank:

@@ -1,6 +1,7 @@
 """Read-only TeamLead statements. No balance creation, reconciliation writes or commands."""
 from __future__ import annotations
 from app.presentation.tradespace.financial_copy import financial_description
+from app.presentation.tradespace.teamlead.formatting import teamlead_percentage, teamlead_usdt
 
 
 from dataclasses import dataclass
@@ -21,12 +22,12 @@ ZERO = Decimal("0.00")
 SOURCE_LABELS = {"trader_referral": "За трейдера", "merchant_referral": "За мерчанта"}
 LEDGER_LABELS = {
     "accrual_credit": "Зачисление начисления", "debt_offset": "Погашение долга",
-    "accrual_reversal": "Сторно начисления", "settlement_freeze": "Резервирование расчёта",
+    "accrual_reversal": "Отмена начисления", "settlement_freeze": "Резервирование расчёта",
     "settlement_release": "Возврат резерва", "settlement_complete": "Завершение расчёта",
     "manual_adjustment": "Корректировка", "write_off": "Списание долга",
 }
 STATES = {
-    "credited": ("Начислено", "positive"), "reversed": ("Сторнировано", "critical"),
+    "credited": ("Начислено", "positive"), "reversed": ("Отменено", "critical"),
     "pending": ("На рассмотрении", "attention"), "completed": ("Выполнен", "positive"),
     "rejected": ("Отклонён", "critical"),
 }
@@ -117,7 +118,7 @@ async def load_teamlead_page(db: AsyncSession, user, *, cabinet_base: str, query
                 "id": str(row.id), "short_id": short(row.id), "member_key": key,
                 "label": label, "source": source, "source_label": SOURCE_LABELS[source],
                 "deposit_id": str(row.deposit_id), "deposit_short": short(row.deposit_id),
-                "gross": amount(row.gross_rub), "percent": amount(row.commission_percent_snapshot, 6),
+                "gross": amount(row.gross_rub), "percent": teamlead_percentage(row.commission_percent_snapshot),
                 "accrual": amount(row.accrual_rub), "available": amount(row.credited_to_available_rub),
                 "debt": amount(row.applied_to_debt_rub), "status": row.status,
                 "status_label": status_label, "tone": tone, "created_at": row.created_at,
@@ -141,7 +142,7 @@ async def load_teamlead_page(db: AsyncSession, user, *, cabinet_base: str, query
                 }
             member = members[key]
             member["active"] |= end is None
-            member["history"].append({"from": start, "to": end, "percent": amount(row.commission_percent, 6)})
+            member["history"].append({"from": start, "to": end, "percent": teamlead_percentage(row.commission_percent)})
     for member in members.values():
         member["records"] = [r for r in accrual_views if r["member_key"] == member["key"]]
         member["record_count"] = len(member["records"])
@@ -192,7 +193,7 @@ async def load_teamlead_page(db: AsyncSession, user, *, cabinet_base: str, query
         "id": str(r.id), "short_id": short(r.id), "status": r.status,
         "status_label": STATES.get(r.status, ("Статус не определён", "neutral"))[0],
         "tone": STATES.get(r.status, ("Статус не определён", "neutral"))[1],
-        "requested_usdt": amount(r.requested_usdt, 6), "fee_usdt": amount(r.fee_usdt, 6),
+        "requested_usdt": teamlead_usdt(r.requested_usdt), "fee_usdt": teamlead_usdt(r.fee_usdt),
         "requested_rub": amount(r.requested_rub), "fee_rub": amount(r.fee_rub),
         "total_debit_rub": amount(r.total_debit_rub), "rate": amount(r.rapira_rate_rub, 8),
         "network": r.network, "wallet": r.wallet_address, "tx_hash": r.tx_hash,
@@ -234,6 +235,6 @@ async def load_teamlead_page(db: AsyncSession, user, *, cabinet_base: str, query
         tuple(filtered[(page-1)*25:page*25]), tuple(ordered[:6]), ledger, settlement_views,
         tuple(source_summary), team_counts, filters, error, page, pages, len(filtered),
         tuple(blockers), next_at, pending, f"teamlead-settlement:{owner}:{uuid4().hex}",
-        amount(TEAMLEAD_SETTLEMENT_FEE_USDT, 6),
+        teamlead_usdt(TEAMLEAD_SETTLEMENT_FEE_USDT),
         int(TEAMLEAD_SETTLEMENT_COOLDOWN.total_seconds() // 3600), tuple(attention),
     )
