@@ -155,6 +155,68 @@ _SPECS: dict[str, _MessageSpec] = {
     "financial_invariant_error": _MessageSpec(
         "blocking", "Финансовая операция заблокирована проверкой целостности.", form_or_modal="financial-action"
     ),
+    "production_confirmation_required": _MessageSpec(
+        "validation", "Введите подтверждение точно как указано: PRODUCTION для подключения или SUSPEND для приостановки.",
+        "merchants", "merchant-production", "confirmation"
+    ),
+    "production_reason_required": _MessageSpec(
+        "validation", "Причина должна содержать от 10 до 1000 символов без крайних пробелов.",
+        "merchants", "merchant-production", "reason"
+    ),
+    "production_activation_forbidden": _MessageSpec(
+        "security", "Подключать Production может только активный Superadmin с подтверждённой 2FA.",
+        "merchants", "merchant-production"
+    ),
+    "integration_action_invalid": _MessageSpec(
+        "validation", "Неизвестное действие с режимом интеграции.", "merchants", "merchant-production"
+    ),
+    "integration_environment_unbound": _MessageSpec(
+        "blocking", "Режим базы данных не настроен. Проверьте конфигурацию окружения на сервере.",
+        "merchants", "merchant-production"
+    ),
+    "integration_environment_mismatch": _MessageSpec(
+        "blocking", "Режим сервера не совпадает с режимом базы данных. Проверьте конфигурацию окружения на сервере.",
+        "merchants", "merchant-production"
+    ),
+    "production_environment_required": _MessageSpec(
+        "blocking", "Production можно подключить только на отдельном Production-сервере с Production-базой.",
+        "merchants", "merchant-production"
+    ),
+    "owner_activation_disabled": _MessageSpec(
+        "blocking", "Владелец ещё не разрешил активацию Production в настройках сервера.",
+        "merchants", "merchant-production"
+    ),
+    "merchant_unavailable": _MessageSpec(
+        "blocking", "Учётная запись мерчанта должна быть активна, не заблокирована и не архивирована.",
+        "merchants", "merchant-production"
+    ),
+    "https_webhook_required": _MessageSpec(
+        "validation", "Укажите публичный HTTPS-адрес Webhook.",
+        "merchants", "merchant-production", "webhook_url"
+    ),
+    "webhook_not_public": _MessageSpec(
+        "validation", "Webhook должен разрешаться в публичный IP-адрес и использовать HTTPS.",
+        "merchants", "merchant-production", "webhook_url"
+    ),
+    "webhook_key_required": _MessageSpec(
+        "blocking", "Выпустите активный ключ подписи Webhook в этом окружении.",
+        "merchants", "merchant-production"
+    ),
+    "production_key_required": _MessageSpec(
+        "blocking", "Выпустите активный Production API-ключ в этом окружении.",
+        "merchants", "merchant-production"
+    ),
+    "merchant_fee_required": _MessageSpec(
+        "blocking", "Настройте действующий тариф мерчанта перед активацией Production.",
+        "merchants", "merchant-production"
+    ),
+    "production_activation_blocked": _MessageSpec(
+        "blocking", "Production пока недоступен. Выполните условия в разделе «Режим интеграции» этой карточки.",
+        "merchants", "merchant-production"
+    ),
+    "production_not_activated": _MessageSpec(
+        "action", "Production ещё не был активирован.", "merchants", "merchant-production"
+    ),
     "action_failed": _MessageSpec(
         "action", "Не удалось выполнить действие. Обновите страницу и повторите попытку.", form_or_modal="action"
     ),

@@ -3,6 +3,7 @@
 No operation or balance is ever reclassified. Financial formulas are unchanged.
 """
 from datetime import datetime, timezone
+import logging
 from urllib.parse import urlsplit
 from sqlalchemy import select, or_
 from app.core.config import settings
@@ -10,11 +11,22 @@ from app.core.validators import validate_public_webhook_url
 from app import models as m
 from app.services.audit import audit
 
+logger = logging.getLogger('app.integration')
+
 
 class IntegrationModeError(ValueError):
     def __init__(self, code, message, status=409, reasons=None):
         super().__init__(message)
         self.code, self.status, self.reasons = code, status, reasons or []
+
+
+def log_production_access_rejection(exc, *, merchant_id, actor_id, action, request_id):
+    logger.warning('merchant_production_action_rejected', extra={
+        'merchant_id': str(merchant_id), 'actor_id': str(actor_id),
+        'action': action if action in {'activate', 'suspend'} else 'invalid',
+        'request_id': request_id, 'error_code': exc.code, 'status_code': exc.status,
+        'blocking_codes': [item['code'] for item in exc.reasons],
+    })
 
 
 async def database_mode(db):
@@ -74,8 +86,10 @@ async def change_production_access(db, merchant_id, actor, *, action, confirmati
     if action not in {'activate','suspend'}:
         raise IntegrationModeError('integration_action_invalid', 'Неизвестное действие.', 422)
     expected = 'PRODUCTION' if action == 'activate' else 'SUSPEND'
-    if confirmation != expected or not 10 <= len(reason.strip()) <= 1000:
-        raise IntegrationModeError('production_confirmation_required', 'Введите подтверждение и причину (10–1000 символов).', 422)
+    if confirmation != expected:
+        raise IntegrationModeError('production_confirmation_required', 'Введите подтверждение ' + expected + '.', 422)
+    if not 10 <= len(reason.strip()) <= 1000:
+        raise IntegrationModeError('production_reason_required', 'Причина должна содержать от 10 до 1000 символов без крайних пробелов.', 422)
     merchant = await db.scalar(select(m.Merchant).where(m.Merchant.id == merchant_id).with_for_update())
     if not merchant: raise IntegrationModeError('merchant_not_found', 'Мерчант не найден.', 404)
     await verify_environment(db)

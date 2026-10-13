@@ -9,7 +9,7 @@ from app.core.enums import Role
 from app.core.client_ip import client_ip
 from app.db.session import get_db
 from app.models import Merchant, User
-from app.services.integration_modes import integration_status, change_production_access, IntegrationModeError
+from app.services.integration_modes import integration_status, change_production_access, IntegrationModeError, log_production_access_rejection
 
 router = APIRouter(prefix='/integration', tags=['integration'])
 
@@ -33,6 +33,8 @@ async def production(merchant_id: UUID, action: Literal['activate','suspend'], p
         result = await change_production_access(db, merchant_id, actor, action=action,
             confirmation=payload.confirmation, reason=payload.reason, ip=client_ip(request))
     except IntegrationModeError as exc:
+        log_production_access_rejection(exc, merchant_id=merchant_id, actor_id=actor.id,
+            action=action, request_id=getattr(request.state, 'request_id', ''))
         raise HTTPException(exc.status, {'code': exc.code, 'message': str(exc), 'reasons': exc.reasons}) from exc
     await db.commit()
     return result

@@ -327,7 +327,10 @@ async def detail(db,actor,view,row,p,base,opts):
             confirmation = 'SUSPEND' if command == 'suspend' else 'PRODUCTION'
             action = f.action(f'merchants/{row.id}/production/{command}',
                 'Приостановить Production' if command == 'suspend' else 'Подключить Production',
-                [f.field('confirmation','Введите '+confirmation), f.reason()], danger=True,
+                [f.field('confirmation','Введите '+confirmation, pattern=confirmation, max_length=32,
+                         hint='Введите указанное слово без пробелов.'),
+                 f.field('reason','Причина',kind='textarea',min_length=10,max_length=1000,
+                         hint='От 10 до 1000 символов без крайних пробелов.')], danger=True,
                 effect='Изменится доступ к боевому API. Данные и балансы Sandbox не переносятся. Действие будет записано в аудит.')
             action['disabled'] = not (mode_state['can_suspend'] or mode_state['can_activate'])
             p.actions.append(action)
