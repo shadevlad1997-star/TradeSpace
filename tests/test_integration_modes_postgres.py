@@ -266,9 +266,19 @@ def test_browser_ui_csrf_2fa_and_old_checkbox_cannot_bypass_activation(monkeypat
             await login(c,users['superadmin'])
             page=await c.get('/staff/cabinet/tradespace/integrations?tab=credentials&id='+str(merchant.id))
             assert page.status_code==200 and 'disabled title="Сначала выполните условия' not in page.text
+            assert 'pattern="PRODUCTION"' in page.text
+            assert 'minlength="10" maxlength="1000"' in page.text
             response=await c.post(f'/staff/cabinet/merchants/{merchant.id}/production/activate',data={**COMMAND,'csrf_token':csrf(page)})
             assert response.status_code==303
             async with AsyncSession(engine) as db: assert (await db.get(m.MerchantProductionAccess,merchant.id)).status=='active'
+            invalid=await c.post(f'/staff/cabinet/merchants/{merchant.id}/production/activate',
+                data={**COMMAND,'reason':'ok','csrf_token':csrf(page)})
+            assert invalid.status_code==303
+            assert 'ui_error=production_reason_required' in invalid.headers['location']
+            assert f'id={merchant.id}' in invalid.headers['location']
+            error_page=await c.get(invalid.headers['location'])
+            assert error_page.status_code==200 and 'от 10 до 1000 символов' in error_page.text
+            assert 'Не удалось выполнить действие' not in error_page.text
     asyncio.run(run())
 
 

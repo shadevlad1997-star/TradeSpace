@@ -8,8 +8,9 @@ from app.core.mobile_operators import get_enabled_mobile_operators
 from app.services.fee_tiers import COMMISSION_TIER_RANGES, COMMISSION_TIER_METHODS, build_commission_tier_context
 
 
-def field(name, label, value='', *, kind='text', options=(), required=True, multiple=False, hint=''):
-    return dict(name=name,label=label,value='' if value is None else value,kind=kind,options=options,required=required,multiple=multiple,hint=hint)
+def field(name, label, value='', *, kind='text', options=(), required=True, multiple=False, hint='', min_length=None, max_length=None, pattern=None):
+    return dict(name=name,label=label,value='' if value is None else value,kind=kind,options=options,required=required,multiple=multiple,hint=hint,
+                min_length=min_length,max_length=max_length,pattern=pattern)
 
 def choice(name,label,options,value='',**kwargs):
     return field(name,label,value,kind='select',options=options,**kwargs)

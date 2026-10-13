@@ -1438,7 +1438,7 @@ async def _locked_merchant(db: AsyncSession, merchant_id: str) -> Merchant | Non
 @router.post('/cabinet/merchants/{merchant_id}/production/{action}')
 async def manage_merchant_production(request: Request, merchant_id: UUID, action: str,
     confirmation: str = Form(...), reason: str = Form(...), db: AsyncSession = Depends(get_db)):
-    from app.services.integration_modes import change_production_access, IntegrationModeError
+    from app.services.integration_modes import change_production_access, IntegrationModeError, log_production_access_rejection
     actor = await _require_superadmin_web(request, db)
     if isinstance(actor, RedirectResponse):
         return actor
@@ -1446,7 +1446,12 @@ async def manage_merchant_production(request: Request, merchant_id: UUID, action
         await change_production_access(db, merchant_id, actor, action=action,
             confirmation=confirmation, reason=reason, ip=client_ip(request))
     except IntegrationModeError as exc:
-        return _merchant_key_redirect(request, str(exc) + ' ' + ' '.join(r['message'] for r in exc.reasons))
+        log_production_access_rejection(exc, merchant_id=merchant_id, actor_id=actor.id,
+            action=action, request_id=getattr(request.state, 'request_id', ''))
+        code = exc.reasons[0]['code'] if exc.code == 'production_activation_blocked' and exc.reasons else exc.code
+        return RedirectResponse(cabinet_redirect_url(
+            '/staff/cabinet/tradespace/integrations', message=code,
+            extra={'tab': 'credentials', 'id': str(merchant_id)}), status_code=303)
     await db.commit()
     return RedirectResponse('/staff/cabinet/tradespace/integrations?tab=credentials&id=' + str(merchant_id), status_code=303)
 
